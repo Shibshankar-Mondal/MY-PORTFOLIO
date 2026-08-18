@@ -1,0 +1,268 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 760" width="100%" height="100%">
+  <defs>
+    <!-- Background Room Gradient -->
+    <linearGradient id="roomBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#d8c5b0" />
+      <stop offset="35%" stopColor="#c5af98" />
+      <stop offset="70%" stopColor="#8d745e" />
+      <stop offset="100%" stopColor="#4a3b2c" />
+    </linearGradient>
+
+    <!-- Warm Ambient Window Light -->
+    <radialGradient id="windowGlow" cx="20%" cy="20%" r="60%">
+      <stop offset="0%" stopColor="#fff8ed" stopOpacity="0.8" />
+      <stop offset="50%" stopColor="#fde68a" stopOpacity="0.3" />
+      <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
+    </radialGradient>
+
+    <!-- Right Screen Ambient Glow -->
+    <radialGradient id="screenBlueGlow" cx="85%" cy="40%" r="50%">
+      <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.4" />
+      <stop offset="60%" stopColor="#6366f1" stopOpacity="0.15" />
+      <stop offset="100%" stopColor="#0f172a" stopOpacity="0" />
+    </radialGradient>
+
+    <!-- Skin Tones -->
+    <linearGradient id="faceGrad" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stopColor="#f6c49c" />
+      <stop offset="45%" stopColor="#e5a97d" />
+      <stop offset="85%" stopColor="#ca8b60" />
+      <stop offset="100%" stopColor="#a96b42" />
+    </linearGradient>
+
+    <linearGradient id="neckShadow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stopColor="#9a5e37" />
+      <stop offset="100%" stopColor="#7a4625" />
+    </linearGradient>
+
+    <!-- Sweater Gradient -->
+    <linearGradient id="sweaterNavy" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#1e293b" />
+      <stop offset="40%" stopColor="#111c30" />
+      <stop offset="80%" stopColor="#0a1122" />
+      <stop offset="100%" stopColor="#040814" />
+    </linearGradient>
+
+    <!-- Laptop Lid & Glow -->
+    <linearGradient id="laptopSilver" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#818cf8" stopOpacity="0.2" />
+      <stop offset="30%" stopColor="#334155" />
+      <stop offset="100%" stopColor="#0f172a" />
+    </linearGradient>
+
+    <!-- Wooden Desk -->
+    <linearGradient id="deskWood" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stopColor="#644933" />
+      <stop offset="30%" stopColor="#4a3423" />
+      <stop offset="100%" stopColor="#291c12" />
+    </linearGradient>
+
+    <!-- Blur Filters for Bokeh Depth -->
+    <filter id="softBlur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" />
+    </filter>
+    <filter id="heavyBlur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14" />
+    </filter>
+  </defs>
+
+  <!-- 1. Background Room Scene (Warm Cozy Home Office) -->
+  <rect width="800" height="760" fill="url(#roomBg)" />
+  <rect width="800" height="760" fill="url(#windowGlow)" />
+  <rect width="800" height="760" fill="url(#screenBlueGlow)" />
+
+  <!-- Background Shelves & Framed Wall Art (Blurred for Camera Bokeh) -->
+  <g filter="url(#heavyBlur)" opacity="0.65">
+    <!-- Bookshelf structure on left -->
+    <rect x="30" y="60" width="16" height="500" rx="3" fill="#e2d4c0" />
+    <rect x="220" y="60" width="16" height="500" rx="3" fill="#e2d4c0" />
+    <rect x="30" y="180" width="206" height="14" fill="#e2d4c0" />
+    <rect x="30" y="340" width="206" height="14" fill="#e2d4c0" />
+    
+    <!-- Books & Plants on shelf -->
+    <rect x="55" y="110" width="20" height="70" fill="#334155" />
+    <rect x="78" y="125" width="16" height="55" fill="#ca8a04" />
+    <rect x="97" y="105" width="22" height="75" fill="#475569" />
+    <circle cx="160" cy="145" r="28" fill="#15803d" />
+    <polygon points="145,180 175,180 170,155 150,155" fill="#78350f" />
+
+    <circle cx="170" cy="295" r="34" fill="#166534" />
+    <polygon points="152,340 188,340 184,310 156,310" fill="#b45309" />
+    <rect x="55" y="270" width="26" height="70" fill="#1e293b" />
+    <rect x="84" y="250" width="24" height="90" fill="#4338ca" />
+
+    <!-- Center Background Framed Minimalist Art -->
+    <rect x="120" y="70" width="160" height="230" rx="6" fill="#f8fafc" stroke="#334155" strokeWidth="8" />
+    <circle cx="200" cy="180" r="45" fill="#334155" opacity="0.3" />
+    <line x1="150" y1="240" x2="250" y2="130" stroke="#0f172a" strokeWidth="6" />
+  </g>
+
+  <!-- Right Background Vertical / Landscape IDE Monitors -->
+  <g filter="url(#softBlur)" opacity="0.85">
+    <!-- Main Right Monitor (Back) -->
+    <rect x="620" y="120" width="160" height="230" rx="8" fill="#030712" stroke="#1e293b" strokeWidth="6" />
+    <rect x="630" y="130" width="140" height="210" rx="4" fill="#0b0f19" />
+    <!-- Glowing Code Lines -->
+    <line x1="640" y1="150" x2="710" y2="150" stroke="#38bdf8" strokeWidth="4" strokeLinecap="round" />
+    <line x1="648" y1="164" x2="740" y2="164" stroke="#c084fc" strokeWidth="4" strokeLinecap="round" />
+    <line x1="648" y1="178" x2="720" y2="178" stroke="#4ade80" strokeWidth="4" strokeLinecap="round" />
+    <line x1="640" y1="192" x2="690" y2="192" stroke="#facc15" strokeWidth="4" strokeLinecap="round" />
+    <line x1="640" y1="210" x2="750" y2="210" stroke="#60a5fa" strokeWidth="4" strokeLinecap="round" />
+    <line x1="648" y1="224" x2="735" y2="224" stroke="#f472b6" strokeWidth="4" strokeLinecap="round" />
+    <line x1="648" y1="238" x2="715" y2="238" stroke="#38bdf8" strokeWidth="4" strokeLinecap="round" />
+    <line x1="640" y1="252" x2="700" y2="252" stroke="#94a3b8" strokeWidth="4" strokeLinecap="round" />
+    <line x1="640" y1="270" x2="745" y2="270" stroke="#818cf8" strokeWidth="4" strokeLinecap="round" />
+    <line x1="648" y1="284" x2="730" y2="284" stroke="#34d399" strokeWidth="4" strokeLinecap="round" />
+
+    <!-- Second Low Monitor on Desk -->
+    <rect x="635" y="380" width="150" height="150" rx="6" fill="#020617" stroke="#1e293b" strokeWidth="5" />
+    <rect x="645" y="390" width="130" height="130" rx="4" fill="#080d1a" />
+    <line x1="655" y1="410" x2="730" y2="410" stroke="#38bdf8" strokeWidth="4" strokeLinecap="round" />
+    <line x1="662" y1="424" x2="755" y2="424" stroke="#a78bfa" strokeWidth="4" strokeLinecap="round" />
+    <line x1="662" y1="438" x2="740" y2="438" stroke="#34d399" strokeWidth="4" strokeLinecap="round" />
+    <line x1="655" y1="452" x2="710" y2="452" stroke="#fcd34d" strokeWidth="4" strokeLinecap="round" />
+    <line x1="655" y1="470" x2="760" y2="470" stroke="#60a5fa" strokeWidth="4" strokeLinecap="round" />
+  </g>
+
+  <!-- 2. Desk Surface (Foreground Base) -->
+  <rect x="0" y="550" width="800" height="210" fill="url(#deskWood)" />
+  <line x1="0" y1="550" x2="800" y2="550" stroke="#78593d" strokeWidth="4" />
+  <!-- Warm desk coffee mug on left -->
+  <ellipse cx="60" cy="530" rx="20" ry="8" fill="#d6c7b2" opacity="0.6" filter="url(#softBlur)" />
+  <rect x="42" y="500" width="36" height="42" rx="4" fill="#a89a85" opacity="0.7" filter="url(#softBlur)" />
+
+  <!-- 3. Shibshankar (Developer Character Model matching ChatGPT Reference) -->
+  <g id="developer-body">
+    <!-- Navy Sweater Torso -->
+    <path
+      d="M 170 760 L 190 470 C 205 400, 260 375, 400 375 C 540 375, 595 400, 610 470 L 630 760 Z"
+      fill="url(#sweaterNavy)"
+    />
+
+    <!-- Knit Ribbing Texture Highlights on Sweater Shoulders & Arms -->
+    <path d="M 230 450 Q 280 435 340 445" stroke="#334155" strokeWidth="3" fill="none" opacity="0.4" />
+    <path d="M 570 450 Q 520 435 460 445" stroke="#334155" strokeWidth="3" fill="none" opacity="0.4" />
+    <path d="M 205 520 Q 270 510 320 530" stroke="#1e293b" strokeWidth="4" fill="none" opacity="0.6" />
+    <path d="M 595 520 Q 530 510 480 530" stroke="#1e293b" strokeWidth="4" fill="none" opacity="0.6" />
+
+    <!-- Crisp White Shirt Collar Popping Above Navy Crewneck -->
+    <path d="M 345 365 L 400 420 L 455 365 L 435 355 L 400 362 L 365 355 Z" fill="#ffffff" />
+    <path d="M 345 365 L 398 425 L 398 460 L 330 380 Z" fill="#e2e8f0" />
+    <path d="M 455 365 L 402 425 L 402 460 L 470 380 Z" fill="#cbd5e1" />
+    <polygon points="398,390 402,390 401,455 399,455" fill="#94a3b8" />
+
+    <!-- Crewneck Sweater Collar Cutout -->
+    <path
+      d="M 330 380 Q 400 440 470 380 Q 400 455 330 380"
+      fill="#0c1322"
+      stroke="#1e293b"
+      strokeWidth="3"
+    />
+
+    <!-- Neck & Throat Shadow -->
+    <rect x="368" y="280" width="64" height="95" rx="14" fill="url(#neckShadow)" />
+    <path d="M 370 280 Q 400 340 430 280 L 430 350 Q 400 375 370 350 Z" fill="url(#faceGrad)" />
+    <!-- Adam's apple & sternocleidomastoid subtle shadows -->
+    <path d="M 396 320 Q 400 328 404 320" stroke="#8c4728" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+    <line x1="380" y1="300" x2="368" y2="350" stroke="#9a5e37" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
+    <line x1="420" y1="300" x2="432" y2="350" stroke="#9a5e37" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
+
+    <!-- Head & Jaw Contour -->
+    <path
+      d="M 320 200 C 315 125, 485 125, 480 200 C 480 280, 445 320, 400 320 C 355 320, 320 280, 320 200 Z"
+      fill="url(#faceGrad)"
+    />
+
+    <!-- Ears -->
+    <ellipse cx="318" cy="215" rx="12" ry="24" fill="#df976c" />
+    <ellipse cx="319" cy="215" rx="6" ry="14" fill="#b96a3e" />
+    <ellipse cx="482" cy="215" rx="12" ry="24" fill="#df976c" />
+    <ellipse cx="481" cy="215" rx="6" ry="14" fill="#b96a3e" />
+
+    <!-- Hair (Stylish, Modern Voluminous Dark Hair matching reference) -->
+    <!-- Base hair silhouette -->
+    <path
+      d="M 305 180 C 300 90, 335 48, 400 48 C 475 48, 500 95, 492 175 C 482 145, 460 135, 400 135 C 340 135, 320 155, 305 180 Z"
+      fill="#17120e"
+    />
+    <!-- Textured Voluminous Wave Top -->
+    <path
+      d="M 325 140 C 330 65, 380 40, 435 42 C 485 45, 495 90, 488 140 C 470 100, 440 85, 395 88 C 350 90, 332 115, 325 140 Z"
+      fill="#251d18"
+    />
+    <path
+      d="M 350 75 C 385 50, 435 55, 460 80 C 430 68, 385 70, 350 75 Z"
+      fill="#3a2e26"
+    />
+    <!-- Sideburns & Temples -->
+    <path d="M 320 170 L 322 225 L 330 205 Z" fill="#17120e" />
+    <path d="M 480 170 L 478 225 L 470 205 Z" fill="#17120e" />
+
+    <!-- Eyebrows (Distinct, Well-Groomed) -->
+    <path d="M 342 188 Q 365 178 385 188" stroke="#1b1410" strokeWidth="5.5" strokeLinecap="round" fill="none" />
+    <path d="M 415 188 Q 435 178 458 188" stroke="#1b1410" strokeWidth="5.5" strokeLinecap="round" fill="none" />
+
+    <!-- Eyes (Warm, Expressive & Confident) -->
+    <!-- Left Eye -->
+    <ellipse cx="366" cy="208" rx="14" ry="9" fill="#ffffff" />
+    <ellipse cx="366" cy="208" rx="7.5" ry="7.5" fill="#321b0f" />
+    <ellipse cx="366" cy="208" rx="4" ry="4" fill="#000000" />
+    <circle cx="369" cy="205" r="2.5" fill="#ffffff" />
+    <path d="M 350 206 Q 366 198 382 206" stroke="#26160d" strokeWidth="3" strokeLinecap="round" fill="none" />
+
+    <!-- Right Eye -->
+    <ellipse cx="434" cy="208" rx="14" ry="9" fill="#ffffff" />
+    <ellipse cx="434" cy="208" rx="7.5" ry="7.5" fill="#321b0f" />
+    <ellipse cx="434" cy="208" rx="4" ry="4" fill="#000000" />
+    <circle cx="437" cy="205" r="2.5" fill="#ffffff" />
+    <path d="M 418 206 Q 434 198 450 206" stroke="#26160d" strokeWidth="3" strokeLinecap="round" fill="none" fillRule="evenodd" />
+
+    <!-- Nose Bridge & Contour -->
+    <path d="M 400 195 L 396 235 L 406 238" stroke="#b46d47" strokeWidth="3.2" strokeLinecap="round" fill="none" />
+    <path d="M 390 238 Q 400 244 410 238" stroke="#924925" strokeWidth="3" strokeLinecap="round" fill="none" />
+    <ellipse cx="392" cy="239" rx="2.5" ry="1.5" fill="#6d3014" />
+    <ellipse cx="408" cy="239" rx="2.5" ry="1.5" fill="#6d3014" />
+
+    <!-- Cheeks & Subtle Warm Lighting Highlights -->
+    <circle cx="345" cy="235" r="18" fill="#f87171" opacity="0.12" filter="url(#softBlur)" />
+    <circle cx="455" cy="235" r="18" fill="#f87171" opacity="0.12" filter="url(#softBlur)" />
+
+    <!-- Mouth & Confident Friendly Smile -->
+    <path d="M 382 272 Q 400 286 418 272" stroke="#873e1c" strokeWidth="3.5" strokeLinecap="round" fill="none" />
+    <path d="M 388 273 Q 400 280 412 273" fill="#ffffff" opacity="0.9" />
+    <path d="M 384 278 Q 400 290 416 278" stroke="#b0542c" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+
+    <!-- Subtle Mustache / Goatee Stubble Shadow matching reference -->
+    <path d="M 390 256 Q 400 258 410 256" stroke="#78350f" strokeWidth="2" strokeLinecap="round" opacity="0.35" fill="none" />
+    <circle cx="400" cy="298" r="7" fill="#78350f" opacity="0.2" filter="url(#softBlur)" />
+  </g>
+
+  <!-- 4. Front Laptop Lid on Desk with Illuminated Apple/Tech Logo -->
+  <g id="developer-laptop">
+    <!-- Laptop Base / Stand Reflection -->
+    <ellipse cx="260" cy="570" rx="140" ry="18" fill="#000000" opacity="0.45" filter="url(#softBlur)" />
+    <!-- Laptop Display Lid (Slanted Perspective) -->
+    <polygon
+      points="110,610 390,610 360,420 160,420"
+      fill="url(#laptopSilver)"
+      stroke="#475569"
+      strokeWidth="2.5"
+    />
+    <!-- Inner Screen Glow Rim -->
+    <polygon
+      points="118,605 382,605 354,426 166,426"
+      fill="#111827"
+      opacity="0.8"
+    />
+
+    <!-- Glowing Apple / Tech Logo in Center of Lid -->
+    <circle cx="260" cy="495" r="14" fill="#ffffff" opacity="0.88" />
+    <path d="M 264 478 Q 272 474 266 470" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" opacity="0.88" fill="none" />
+
+    <!-- Developer Hands resting naturally beside Laptop -->
+    <!-- Left Hand -->
+    <ellipse cx="140" cy="580" rx="30" ry="16" fill="url(#faceGrad)" />
+    <!-- Right Hand on Keyboard side -->
+    <ellipse cx="380" cy="580" rx="30" ry="16" fill="url(#faceGrad)" />
+  </g>
+</svg>

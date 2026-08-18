@@ -1,0 +1,392 @@
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  ArrowUpRight,
+  Mail,
+  FileText,
+  Github,
+  Linkedin,
+  Instagram,
+  MapPin,
+  Upload,
+  RotateCcw,
+  Images,
+  Check,
+  Terminal,
+  Laptop,
+  ExternalLink,
+} from 'lucide-react';
+import { PERSONAL_INFO } from '../data/portfolioData';
+import { useLanguage } from '../context/LanguageContext';
+
+interface HeroProps {
+  onOpenResume: () => void;
+}
+
+const DEFAULT_DEVELOPER_IMAGE = '/images/shibshankar-developer.svg';
+
+const WORKSPACE_PRESETS = [
+  {
+    id: 'developer-workspace-primary',
+    name: 'Shibshankar Developer Workstation (Default)',
+    url: '/images/shibshankar-developer.svg',
+  },
+  {
+    id: 'coding-dual-screens',
+    name: 'Dual Monitors & Laptop Setup',
+    url: 'https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?auto=format&fit=crop&w=1200&q=80',
+  },
+  {
+    id: 'developer-laptop-ide',
+    name: 'Developer at Desk with IDE Displays',
+    url: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80',
+  },
+  {
+    id: 'coding-workstation',
+    name: 'Warm Studio Coding Workstation',
+    url: 'https://images.unsplash.com/photo-1587620962725-abab7fe55159?auto=format&fit=crop&w=1200&q=80',
+  },
+  {
+    id: 'focused-workspace',
+    name: 'Focused Multi-Screen Setup',
+    url: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=1200&q=80',
+  },
+];
+
+export const Hero: React.FC<HeroProps> = ({ onOpenResume }) => {
+  const { t } = useLanguage();
+  const [avatarImage, setAvatarImage] = useState<string>(DEFAULT_DEVELOPER_IMAGE);
+  const [showPresetsMenu, setShowPresetsMenu] = useState<boolean>(false);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const savedAvatar = localStorage.getItem('user_custom_avatar');
+    if (savedAvatar) {
+      setAvatarImage(savedAvatar);
+    }
+
+    const handleGlobalPaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (items) {
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type.startsWith('image/')) {
+            const file = items[i].getAsFile();
+            if (file) {
+              processFile(file);
+              break;
+            }
+          }
+        }
+      }
+    };
+
+    window.addEventListener('paste', handleGlobalPaste);
+    return () => {
+      window.removeEventListener('paste', handleGlobalPaste);
+    };
+  }, []);
+
+  const processFile = (file: File) => {
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setAvatarImage(base64);
+        localStorage.setItem('user_custom_avatar', base64);
+        setShowPresetsMenu(false);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processFile(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      processFile(file);
+    }
+  };
+
+  const handleSelectPreset = (url: string) => {
+    setAvatarImage(url);
+    localStorage.setItem('user_custom_avatar', url);
+    setShowPresetsMenu(false);
+  };
+
+  const handleResetAvatar = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    localStorage.removeItem('user_custom_avatar');
+    setAvatarImage(DEFAULT_DEVELOPER_IMAGE);
+    setShowPresetsMenu(false);
+  };
+
+  const scrollTo = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      const offset = 80;
+      const elPosition = el.getBoundingClientRect().top;
+      const offsetPosition = elPosition + window.pageYOffset - offset;
+      window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+    }
+  };
+
+  return (
+    <section
+      id="home"
+      className="relative min-h-[calc(100vh-4.5rem)] flex items-center pt-24 pb-16 lg:py-24 overflow-hidden bg-slate-950 text-slate-100"
+    >
+      {/* Background Ambient Glows */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden -z-10">
+        <div className="absolute top-1/4 left-1/4 w-[600px] h-[400px] bg-indigo-600/10 blur-[130px] rounded-full" />
+        <div className="absolute top-1/3 right-10 w-[500px] h-[500px] bg-purple-600/15 blur-[140px] rounded-full" />
+        <div className="absolute -bottom-10 left-1/3 w-[500px] h-[300px] bg-sky-500/10 blur-[120px] rounded-full" />
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+          {/* Left Column: Hero Text & Actions */}
+          <div className="lg:col-span-7 space-y-6 text-center flex flex-col items-center">
+            {/* Pill Badge */}
+            <a
+              id="hero-university-badge"
+              href="https://www.swamivivekanandauniversity.ac.in/"
+              target="_blank"
+              rel="noreferrer"
+              title="Swami Vivekananda University (SVU) — Official Website"
+              className="inline-flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-full bg-[#11162b] hover:bg-[#18203d] border border-indigo-900/70 hover:border-indigo-600/60 text-xs font-medium text-indigo-300 hover:text-indigo-200 transition-all duration-200 shadow-sm hover:shadow-indigo-500/20 active:scale-95 group cursor-pointer"
+            >
+              <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse shrink-0" />
+              <span>{t.hero.studentBadge}</span>
+              <ExternalLink className="w-3 h-3 text-indigo-400/80 group-hover:text-indigo-200 transition-transform group-hover:translate-x-0.5 shrink-0" />
+            </a>
+
+            {/* Greeting & Main Headings */}
+            <div className="space-y-2 text-center">
+              <p className="text-lg sm:text-xl font-medium text-slate-300">
+                {t.hero.greeting}
+              </p>
+              <h1
+                id="hero-developer-name-heading"
+                className="relative inline-block text-4xl sm:text-6xl lg:text-7xl font-black font-display tracking-tight leading-[1.12] select-none py-1 perspective-1000"
+              >
+                <span className="relative z-10 font-display font-black tracking-tight bg-gradient-to-r from-cyan-400 via-indigo-300 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-gradient-3d drop-shadow-[0_8px_20px_rgba(99,102,241,0.55)] transition-transform duration-300 hover:scale-105 inline-block">
+                  {PERSONAL_INFO.name}
+                </span>
+                {/* 3D Extrusion Shadow Layer */}
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-0 z-0 font-display font-black tracking-tight text-indigo-950/80 blur-[2px] translate-y-1.5 translate-x-0.5 select-none pointer-events-none hidden sm:inline-block"
+                >
+                  {PERSONAL_INFO.name}
+                </span>
+              </h1>
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-200 pt-1">
+                {t.hero.introPrefix}{' '}
+                <span className="text-sky-400">{t.hero.roleHighlight}</span>
+              </h2>
+            </div>
+
+            {/* Description Paragraph */}
+            <p className="text-sm sm:text-base text-slate-400 max-w-xl mx-auto leading-relaxed text-center">
+              {t.hero.bio}
+            </p>
+
+            {/* CTA Buttons */}
+            <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 pt-1">
+              <button
+                id="hero-view-projects-btn"
+                onClick={() => scrollTo('projects')}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-sm sm:text-base text-white bg-gradient-to-r from-indigo-600 via-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-600/30 hover:scale-[1.02] active:scale-95 cursor-pointer"
+              >
+                <span>{t.hero.viewProjects}</span>
+                <ArrowUpRight className="w-4 h-4" />
+              </button>
+
+              <button
+                id="hero-contact-btn"
+                onClick={() => scrollTo('contact')}
+                className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl font-semibold text-sm sm:text-base text-slate-200 bg-[#121829] hover:bg-[#1a2238] border border-slate-800 hover:border-slate-700 transition-all active:scale-95 cursor-pointer"
+              >
+                <Mail className="w-4 h-4 text-slate-400" />
+                <span>{t.hero.contactMe}</span>
+              </button>
+
+              <button
+                id="hero-view-resume-btn"
+                onClick={onOpenResume}
+                className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl font-semibold text-sm sm:text-base text-slate-200 bg-[#121829] hover:bg-[#1a2238] border border-slate-800 hover:border-slate-700 transition-all active:scale-95 cursor-pointer"
+              >
+                <FileText className="w-4 h-4 text-slate-400" />
+                <span>{t.hero.resume}</span>
+              </button>
+            </div>
+
+            {/* Social & Contact Metadata Row */}
+            <div className="flex flex-wrap items-center justify-center gap-y-3 gap-x-6 pt-4 border-t border-slate-900 text-xs sm:text-sm text-slate-400 w-full">
+              <a
+                href={PERSONAL_INFO.socials.github}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 hover:text-white transition-colors"
+              >
+                <Github className="w-4 h-4 text-slate-400" />
+                <span>GitHub</span>
+              </a>
+
+              <a
+                href={PERSONAL_INFO.socials.linkedin}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 hover:text-white transition-colors"
+              >
+                <Linkedin className="w-4 h-4 text-sky-400" />
+                <span>LinkedIn</span>
+              </a>
+
+              <a
+                href={PERSONAL_INFO.socials.instagram}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 hover:text-white transition-colors"
+              >
+                <Instagram className="w-4 h-4 text-rose-400" />
+                <span>Instagram</span>
+              </a>
+
+              <a
+                href={`mailto:${PERSONAL_INFO.email}`}
+                className="inline-flex items-center gap-1.5 hover:text-white transition-colors"
+              >
+                <Mail className="w-4 h-4 text-slate-400" />
+                <span>{PERSONAL_INFO.email}</span>
+              </a>
+
+              <a
+                href={PERSONAL_INFO.mapsUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors"
+                title="View Swami Vivekananda University on Google Maps"
+              >
+                <MapPin className="w-4 h-4 text-slate-400" />
+                <span>{PERSONAL_INFO.location || 'Barrackpore, Kolkata'}</span>
+              </a>
+            </div>
+          </div>
+
+          {/* Right Column: Developer Showcase Card (Image & Terminal) */}
+          <div className="lg:col-span-5 w-full">
+            <div
+              id="hero-developer-showcase-card"
+              className="relative rounded-3xl p-1.5 bg-gradient-to-b from-indigo-500/40 via-purple-600/25 to-slate-900/60 border border-indigo-500/35 shadow-[0_0_60px_-15px_rgba(99,102,241,0.45)]"
+            >
+              <div className="rounded-[22px] bg-[#070b16] border border-slate-800/90 p-3 sm:p-4 space-y-3">
+                {/* Photo / Workstation Display Container */}
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`relative rounded-2xl overflow-hidden aspect-[4/3.8] bg-[#0c1222] border transition-all duration-300 group ${
+                    isDragging
+                      ? 'border-indigo-400 ring-4 ring-indigo-500/50 scale-[1.01]'
+                      : 'border-slate-800/80 shadow-inner'
+                  }`}
+                >
+                  <img
+                    id="hero-showcase-image"
+                    src={avatarImage}
+                    alt={PERSONAL_INFO.name}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 cursor-pointer"
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Click to select or change image"
+                  />
+
+                  {/* Drag-over Backdrop Overlay */}
+                  {isDragging && (
+                    <div className="absolute inset-0 bg-indigo-950/95 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 z-40 animate-in fade-in">
+                      <Upload className="w-10 h-10 text-indigo-400 animate-bounce mb-2" />
+                      <p className="text-sm font-bold text-white">Drop your image here</p>
+                      <p className="text-xs text-indigo-200">Release to apply to your showcase card</p>
+                    </div>
+                  )}
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+
+                  {/* Floating Current Focus Badge Overlay on Photo matching reference */}
+                  <div className="absolute bottom-3 left-3 right-3 p-3.5 rounded-xl bg-[#0c1427]/92 backdrop-blur-md border border-slate-800/90 flex items-center justify-between shadow-2xl pointer-events-none">
+                    <div>
+                      <div className="text-[10px] font-bold tracking-wider text-indigo-400 uppercase">
+                        CURRENT FOCUS
+                      </div>
+                      <div className="text-xs sm:text-sm font-bold text-white tracking-tight mt-0.5">
+                        Full-Stack Web Dev &amp; C++ DSA
+                      </div>
+                    </div>
+                    <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-[#042f2e]/90 border border-teal-500/60 text-teal-300 shrink-0">
+                      2nd Year BCA
+                    </span>
+                  </div>
+                </div>
+
+                {/* Bottom Code Terminal Box (matching the reference prompt snippet) */}
+                <div className="rounded-xl bg-[#050914] border border-slate-800/90 p-3.5 sm:p-4 font-mono text-xs text-slate-300 space-y-2 shadow-inner">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-800/60 text-[11px]">
+                    <div className="flex items-center gap-2">
+                      <span className="text-indigo-400 font-bold">&gt;_</span>
+                      <span className="text-slate-400">shibshankar@svu-bca ~ %</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>Live</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1 text-xs leading-relaxed overflow-x-auto pt-1 font-mono">
+                    <p>
+                      <span className="text-teal-400 font-semibold">const</span>{' '}
+                      <span className="text-slate-200">student</span> = {'{'} <span className="text-slate-300">name:</span>{' '}
+                      <span className="text-amber-300">"Shibshankar Mondal"</span>, <span className="text-slate-300">college:</span>{' '}
+                      <span className="text-amber-300">"SVU Barrackpore"</span> {'}'};
+                    </p>
+                    <p>
+                      <span className="text-purple-400 font-semibold">function</span>{' '}
+                      <span className="text-sky-300">getGoal</span>() {'{'}{' '}
+                      <span className="text-emerald-400 font-semibold">return</span>{' '}
+                      <span className="text-amber-300">"Build innovative web solutions 🚀"</span>;{' '}
+                      {'}'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
