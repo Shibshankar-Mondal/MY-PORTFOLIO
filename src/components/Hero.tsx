@@ -10,9 +10,15 @@ import {
   ExternalLink,
   Upload,
   Sparkles,
+  Terminal,
+  Code2,
+  Send,
+  RotateCcw,
 } from 'lucide-react';
-import { PERSONAL_INFO } from '../data/portfolioData';
+import confetti from 'canvas-confetti';
+import { PERSONAL_INFO, PROJECTS_DATA, SKILLS_DATA } from '../data/portfolioData';
 import { useLanguage } from '../context/LanguageContext';
+import { playUiSound } from '../utils/soundEffects';
 
 interface HeroProps {
   onOpenResume: () => void;
@@ -25,6 +31,15 @@ export const Hero: React.FC<HeroProps> = ({ onOpenResume }) => {
   const [avatarImage, setAvatarImage] = useState<string>(DEFAULT_DEVELOPER_IMAGE);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Terminal state
+  const [terminalTab, setTerminalTab] = useState<'code' | 'shell'>('shell');
+  const [cmdInput, setCmdInput] = useState('');
+  const [terminalLogs, setTerminalLogs] = useState<Array<{ text: string; type: 'input' | 'output' | 'success' | 'system' }>>([
+    { text: 'Shibshankar DevShell v2.4 (React 19 + TypeScript)', type: 'system' },
+    { text: 'Type "help" or click quick commands below to explore:', type: 'output' },
+  ]);
+  const terminalEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const savedAvatar = localStorage.getItem('user_custom_avatar');
@@ -52,6 +67,93 @@ export const Hero: React.FC<HeroProps> = ({ onOpenResume }) => {
       window.removeEventListener('paste', handleGlobalPaste);
     };
   }, []);
+
+  const triggerConfetti = () => {
+    confetti({
+      particleCount: 80,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#6366f1', '#a855f7', '#ec4899', '#38bdf8', '#34d399'],
+    });
+  };
+
+  const handleCommand = (cmdStr: string) => {
+    const trimmed = cmdStr.trim().toLowerCase();
+    if (!trimmed) return;
+
+    playUiSound('terminal');
+    const newLogs = [...terminalLogs, { text: `$ ${cmdStr}`, type: 'input' as const }];
+
+    switch (trimmed) {
+      case 'help':
+        newLogs.push({
+          text: 'Available commands: about, skills, projects, education, contact, hire, clear',
+          type: 'output',
+        });
+        break;
+
+      case 'about':
+        newLogs.push({
+          text: `🎓 Shibshankar Mondal — 2nd Year BCA Student @ SVU Barrackpore. Passionate Web & Software Developer.`,
+          type: 'output',
+        });
+        break;
+
+      case 'skills':
+        newLogs.push({
+          text: `⚡ Tech Stack: C, C++, Python, JavaScript, HTML5, CSS3, React, SQL, MongoDB, Git & GitHub.`,
+          type: 'output',
+        });
+        break;
+
+      case 'projects':
+        newLogs.push({
+          text: `🚀 Projects: 1. Personal Portfolio | 2. E-Commerce Shoe Store | 3. 2248 Block Slide | 4. Student Management System`,
+          type: 'output',
+        });
+        break;
+
+      case 'education':
+        newLogs.push({
+          text: `🏛️ Education: BCA @ Swami Vivekananda University (2025-2029) • MERN Stack @ Learning Hub`,
+          type: 'output',
+        });
+        break;
+
+      case 'contact':
+        newLogs.push({
+          text: `📬 Email: ${PERSONAL_INFO.email} | 📞 Phone: ${PERSONAL_INFO.phone}`,
+          type: 'output',
+        });
+        break;
+
+      case 'hire':
+      case 'sudo hire':
+        newLogs.push({
+          text: `🎉 Thank you! I am available for internships and exciting software projects. Let's build together!`,
+          type: 'success',
+        });
+        triggerConfetti();
+        playUiSound('success');
+        break;
+
+      case 'clear':
+        setTerminalLogs([]);
+        setCmdInput('');
+        return;
+
+      default:
+        newLogs.push({
+          text: `Command not found: "${trimmed}". Type "help" for a list of commands.`,
+          type: 'output',
+        });
+        break;
+    }
+
+    setTerminalLogs(newLogs);
+    setCmdInput('');
+    setTimeout(() => terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+  };
 
   const processFile = (file: File) => {
     if (file && file.type.startsWith('image/')) {
@@ -322,33 +424,132 @@ export const Hero: React.FC<HeroProps> = ({ onOpenResume }) => {
                 </div>
 
                 {/* Bottom Code Terminal Box */}
-                <div className="rounded-xl bg-[#050914] border border-slate-800/90 p-3.5 sm:p-4 font-mono text-xs text-slate-300 space-y-2 shadow-inner">
-                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-800/60 text-[11px]">
-                    <div className="flex items-center gap-2">
-                      <span className="text-indigo-400 font-bold">&gt;_</span>
-                      <span className="text-slate-400">shibshankar@svu-bca ~ %</span>
+                <div className="rounded-xl bg-[#050914] border border-slate-800/90 p-3 sm:p-3.5 font-mono text-xs text-slate-300 space-y-2.5 shadow-inner">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-800/70 text-[11px]">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => {
+                          setTerminalTab('shell');
+                          playUiSound('tab');
+                        }}
+                        className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold transition-colors cursor-pointer ${
+                          terminalTab === 'shell'
+                            ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/40'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <Terminal className="w-3 h-3" />
+                        <span>dev_shell</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setTerminalTab('code');
+                          playUiSound('tab');
+                        }}
+                        className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold transition-colors cursor-pointer ${
+                          terminalTab === 'code'
+                            ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/40'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <Code2 className="w-3 h-3" />
+                        <span>developer.ts</span>
+                      </button>
                     </div>
-                    <div className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+
+                    <div className="flex items-center gap-1.5 text-emerald-400 font-semibold text-[10px]">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      <span>Live</span>
+                      <span>Ready</span>
                     </div>
                   </div>
 
-                  <div className="space-y-1 text-xs leading-relaxed overflow-x-auto pt-1 font-mono">
-                    <p>
-                      <span className="text-teal-400 font-semibold">const</span>{' '}
-                      <span className="text-slate-200">student</span> = {'{'} <span className="text-slate-300">name:</span>{' '}
-                      <span className="text-amber-300">"Shibshankar Mondal"</span>, <span className="text-slate-300">college:</span>{' '}
-                      <span className="text-amber-300">"SVU Barrackpore"</span> {'}'};
-                    </p>
-                    <p>
-                      <span className="text-purple-400 font-semibold">function</span>{' '}
-                      <span className="text-sky-300">getGoal</span>() {'{'}{' '}
-                      <span className="text-emerald-400 font-semibold">return</span>{' '}
-                      <span className="text-amber-300">"Build innovative web solutions 🚀"</span>;{' '}
-                      {'}'}
-                    </p>
-                  </div>
+                  {terminalTab === 'code' ? (
+                    <div className="space-y-1 text-xs leading-relaxed overflow-x-auto pt-0.5 font-mono">
+                      <p>
+                        <span className="text-teal-400 font-semibold">const</span>{' '}
+                        <span className="text-slate-200">developer</span> = {'{'}
+                      </p>
+                      <p className="pl-3">
+                        <span className="text-slate-300">name:</span>{' '}
+                        <span className="text-amber-300">"{PERSONAL_INFO.name}"</span>,
+                      </p>
+                      <p className="pl-3">
+                        <span className="text-slate-300">education:</span>{' '}
+                        <span className="text-amber-300">"BCA 2nd Year @ SVU"</span>,
+                      </p>
+                      <p className="pl-3">
+                        <span className="text-slate-300">focus:</span>{' '}
+                        <span className="text-emerald-300">["React", "Node.js", "C++ DSA", "SQL"]</span>,
+                      </p>
+                      <p className="pl-3">
+                        <span className="text-slate-300">status:</span>{' '}
+                        <span className="text-emerald-400 font-semibold">"Ready for Internships &amp; Projects 🚀"</span>
+                      </p>
+                      <p>{'}'};</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {/* Terminal log messages */}
+                      <div className="max-h-28 overflow-y-auto space-y-1 pr-1 font-mono text-[11px] leading-relaxed scrollbar-thin">
+                        {terminalLogs.map((log, idx) => (
+                          <div
+                            key={idx}
+                            className={`${
+                              log.type === 'input'
+                                ? 'text-indigo-400 font-bold'
+                                : log.type === 'success'
+                                ? 'text-emerald-400 font-bold bg-emerald-950/40 p-1.5 rounded border border-emerald-500/30'
+                                : log.type === 'system'
+                                ? 'text-slate-400 italic text-[10px]'
+                                : 'text-slate-300'
+                            }`}
+                          >
+                            {log.text}
+                          </div>
+                        ))}
+                        <div ref={terminalEndRef} />
+                      </div>
+
+                      {/* Interactive Prompt Input */}
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          handleCommand(cmdInput);
+                        }}
+                        className="flex items-center gap-1.5 pt-1 border-t border-slate-800/60"
+                      >
+                        <span className="text-indigo-400 font-bold text-xs shrink-0">&gt;</span>
+                        <input
+                          type="text"
+                          value={cmdInput}
+                          onChange={(e) => setCmdInput(e.target.value)}
+                          placeholder="Type 'help', 'hire', 'skills'..."
+                          className="w-full bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none font-mono"
+                        />
+                        <button
+                          type="submit"
+                          className="p-1 rounded text-slate-400 hover:text-indigo-400 hover:bg-slate-800/80 transition-colors cursor-pointer shrink-0"
+                          title="Execute command"
+                        >
+                          <Send className="w-3 h-3" />
+                        </button>
+                      </form>
+
+                      {/* Quick Command Suggestion Chips */}
+                      <div className="flex flex-wrap gap-1 pt-0.5">
+                        {['help', 'skills', 'projects', 'hire', 'clear'].map((cmd) => (
+                          <button
+                            key={cmd}
+                            type="button"
+                            onClick={() => handleCommand(cmd)}
+                            className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-900 hover:bg-indigo-950 text-slate-400 hover:text-indigo-300 border border-slate-800 hover:border-indigo-500/40 transition-colors cursor-pointer"
+                          >
+                            {cmd}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

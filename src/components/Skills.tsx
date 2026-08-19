@@ -19,10 +19,15 @@ import {
   Calculator,
   CheckCircle,
   Filter,
+  Search,
+  Copy,
+  Check,
+  Sparkles,
 } from 'lucide-react';
 import { SKILLS_DATA } from '../data/portfolioData';
 import { SkillCategory, SkillItem } from '../types';
 import { useLanguage } from '../context/LanguageContext';
+import { playUiSound } from '../utils/soundEffects';
 
 interface SkillCardItemProps {
   skill: SkillItem;
@@ -178,6 +183,8 @@ const SkillCardItem: React.FC<SkillCardItemProps> = ({
 export const Skills: React.FC = () => {
   const { t } = useLanguage();
   const [activeCategory, setActiveCategory] = useState<SkillCategory>('all');
+  const [skillSearch, setSkillSearch] = useState<string>('');
+  const [copiedTechStack, setCopiedTechStack] = useState<boolean>(false);
 
   const getSkillIcon = (iconName: string) => {
     switch (iconName) {
@@ -218,10 +225,24 @@ export const Skills: React.FC = () => {
     }
   };
 
-  const filteredSkills =
-    activeCategory === 'all'
-      ? SKILLS_DATA
-      : SKILLS_DATA.filter((skill) => skill.category === activeCategory);
+  const filteredSkills = SKILLS_DATA.filter((skill) => {
+    const matchesCategory = activeCategory === 'all' || skill.category === activeCategory;
+    const q = skillSearch.toLowerCase().trim();
+    if (!q) return matchesCategory;
+    const matchesSearch =
+      skill.name.toLowerCase().includes(q) ||
+      skill.description.toLowerCase().includes(q) ||
+      skill.levelLabel.toLowerCase().includes(q);
+    return matchesCategory && matchesSearch;
+  });
+
+  const handleCopyTechStack = () => {
+    const list = SKILLS_DATA.map((s) => `${s.name} (${s.levelLabel} - ${s.level}%)`).join(', ');
+    navigator.clipboard.writeText(list);
+    setCopiedTechStack(true);
+    playUiSound('success');
+    setTimeout(() => setCopiedTechStack(false), 2000);
+  };
 
   const categories: Array<{ id: SkillCategory; label: string; count: number }> = [
     { id: 'all', label: t.skills.filterAll, count: SKILLS_DATA.length },
@@ -264,47 +285,114 @@ export const Skills: React.FC = () => {
           </p>
         </div>
 
-        {/* Filter Category Tabs */}
-        <div className="flex flex-wrap items-center justify-center gap-2 mb-12">
-          {categories.map((cat) => {
-            const isActive = activeCategory === cat.id;
-            return (
-              <button
-                key={cat.id}
-                id={`filter-skill-${cat.id}`}
-                onClick={() => setActiveCategory(cat.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 ${
-                  isActive
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 font-semibold'
-                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
-                }`}
-              >
-                <span>{cat.label}</span>
-                <span
-                  className={`text-xs px-1.5 py-0.5 rounded-md ${
+        {/* Filter Category Tabs & Live Search */}
+        <div className="space-y-4 mb-12 max-w-4xl mx-auto">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            {/* Live Search */}
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={skillSearch}
+                onChange={(e) => setSkillSearch(e.target.value)}
+                placeholder="Search skills (C++, Python, React, SQL)..."
+                className="w-full pl-9 pr-8 py-2 rounded-xl text-xs sm:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+              />
+              {skillSearch && (
+                <button
+                  onClick={() => setSkillSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {/* Copy Tech Stack Button */}
+            <button
+              onClick={handleCopyTechStack}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 shadow-sm transition-all cursor-pointer"
+            >
+              {copiedTechStack ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                  <span className="text-emerald-600 dark:text-emerald-400">Tech Stack Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Copy Tech Stack Summary</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {categories.map((cat) => {
+              const isActive = activeCategory === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  id={`filter-skill-${cat.id}`}
+                  onClick={() => {
+                    setActiveCategory(cat.id);
+                    playUiSound('tab');
+                  }}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 cursor-pointer ${
                     isActive
-                      ? 'bg-indigo-500/50 text-white'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 font-semibold'
+                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
                   }`}
                 >
-                  {cat.count}
-                </span>
-              </button>
-            );
-          })}
+                  <span>{cat.label}</span>
+                  <span
+                    className={`text-xs px-1.5 py-0.5 rounded-md ${
+                      isActive
+                        ? 'bg-indigo-500/50 text-white'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                    }`}
+                  >
+                    {cat.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Skills Cards Grid with 3D Hover */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredSkills.map((skill) => (
-            <SkillCardItem
-              key={skill.name}
-              skill={skill}
-              getSkillIcon={getSkillIcon}
-              proficiencyLabel={t.skills.proficiency}
-            />
-          ))}
-        </div>
+        {filteredSkills.length === 0 ? (
+          <div className="py-16 text-center text-slate-400 max-w-md mx-auto space-y-3">
+            <Search className="w-10 h-10 mx-auto text-slate-400 opacity-50" />
+            <p className="text-base font-semibold text-slate-700 dark:text-slate-300">
+              No matching skills found
+            </p>
+            <p className="text-xs text-slate-500">
+              Try searching with another keyword like "React", "C++", "DSA", or "SQL".
+            </p>
+            <button
+              onClick={() => {
+                setSkillSearch('');
+                setActiveCategory('all');
+                playUiSound('tab');
+              }}
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-500 cursor-pointer"
+            >
+              Reset Filters
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredSkills.map((skill) => (
+              <SkillCardItem
+                key={skill.name}
+                skill={skill}
+                getSkillIcon={getSkillIcon}
+                proficiencyLabel={t.skills.proficiency}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Realistic Note / Ethics Badge */}
         <div className="mt-12 p-4 sm:p-5 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 text-center max-w-2xl mx-auto">

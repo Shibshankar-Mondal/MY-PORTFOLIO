@@ -15,9 +15,11 @@ import {
   CheckCircle2,
   ExternalLink,
 } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { PERSONAL_INFO } from '../data/portfolioData';
 import { ContactFormData } from '../types';
 import { useLanguage } from '../context/LanguageContext';
+import { playUiSound } from '../utils/soundEffects';
 
 export const Contact: React.FC = () => {
   const { t } = useLanguage();
@@ -129,6 +131,7 @@ export const Contact: React.FC = () => {
 
     const isValid = validateAll();
     if (!isValid) {
+      playUiSound('error');
       // Focus first invalid field
       const fields: (keyof ContactFormData)[] = ['name', 'email', 'subject', 'message'];
       for (const f of fields) {
@@ -142,12 +145,19 @@ export const Contact: React.FC = () => {
       return;
     }
 
+    playUiSound('click');
     setIsSubmitting(true);
 
     // Simulate reliable form submission with realistic delay
     setTimeout(() => {
       setIsSubmitting(false);
       setIsSubmitted(true);
+      playUiSound('success');
+      confetti({
+        particleCount: 75,
+        spread: 80,
+        origin: { y: 0.6 },
+      });
       setFormData({
         name: '',
         email: '',
@@ -168,12 +178,14 @@ export const Contact: React.FC = () => {
   const handleCopyEmail = () => {
     navigator.clipboard.writeText(PERSONAL_INFO.email);
     setCopiedEmail(true);
+    playUiSound('success');
     setTimeout(() => setCopiedEmail(false), 2500);
   };
 
   const handleCopyPhone = () => {
     navigator.clipboard.writeText(PERSONAL_INFO.phone);
     setCopiedPhone(true);
+    playUiSound('success');
     setTimeout(() => setCopiedPhone(false), 2500);
   };
 

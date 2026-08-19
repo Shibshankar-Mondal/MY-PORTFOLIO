@@ -9,21 +9,54 @@ import {
   Database,
   Laptop,
   Gamepad2,
+  Search,
+  Copy,
+  Check,
+  Sparkles,
 } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { PROJECTS_DATA } from '../data/portfolioData';
 import { ProjectItem } from '../types';
 import { ProjectModal } from './ProjectModal';
 import { useLanguage } from '../context/LanguageContext';
+import { playUiSound } from '../utils/soundEffects';
 
 export const Projects: React.FC = () => {
   const { t } = useLanguage();
   const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'frontend' | 'web' | 'system'>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [copiedProjectId, setCopiedProjectId] = useState<string | null>(null);
 
-  const filteredProjects =
-    activeFilter === 'all'
-      ? PROJECTS_DATA
-      : PROJECTS_DATA.filter((p) => p.category === activeFilter);
+  const filteredProjects = PROJECTS_DATA.filter((p) => {
+    const matchesFilter = activeFilter === 'all' || p.category === activeFilter;
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return matchesFilter;
+
+    const matchesSearch =
+      p.title.toLowerCase().includes(q) ||
+      p.shortDescription.toLowerCase().includes(q) ||
+      p.technologies.some((tech) => tech.toLowerCase().includes(q));
+
+    return matchesFilter && matchesSearch;
+  });
+
+  const handleCopyLink = (project: ProjectItem) => {
+    const url = project.liveDemoUrl || window.location.href;
+    navigator.clipboard.writeText(url);
+    setCopiedProjectId(project.id);
+    playUiSound('success');
+    setTimeout(() => setCopiedProjectId(null), 2000);
+  };
+
+  const handleLiveDemoClick = () => {
+    playUiSound('success');
+    confetti({
+      particleCount: 50,
+      spread: 60,
+      origin: { y: 0.7 },
+    });
+  };
 
   const getProjectIllustration = (project: ProjectItem) => {
     switch (project.id) {
@@ -145,148 +178,226 @@ export const Projects: React.FC = () => {
           </p>
         </div>
 
-        {/* Category Filters */}
-        <div className="flex flex-wrap items-center justify-center gap-2 mb-12">
-          <button
-            id="filter-proj-all"
-            onClick={() => setActiveFilter('all')}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all ${
-              activeFilter === 'all'
-                ? 'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/20'
-                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
-            }`}
-          >
-            {t.projects.filterAll} ({PROJECTS_DATA.length})
-          </button>
-          <button
-            id="filter-proj-frontend"
-            onClick={() => setActiveFilter('frontend')}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all ${
-              activeFilter === 'frontend'
-                ? 'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/20'
-                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
-            }`}
-          >
-            {t.projects.filterFrontend}
-          </button>
-          <button
-            id="filter-proj-web"
-            onClick={() => setActiveFilter('web')}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all ${
-              activeFilter === 'web'
-                ? 'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/20'
-                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
-            }`}
-          >
-            {t.projects.filterWeb}
-          </button>
-          <button
-            id="filter-proj-system"
-            onClick={() => setActiveFilter('system')}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all ${
-              activeFilter === 'system'
-                ? 'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/20'
-                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
-            }`}
-          >
-            {t.projects.filterDatabase}
-          </button>
+        {/* Search & Category Filter Bar */}
+        <div className="space-y-4 mb-12 max-w-4xl mx-auto">
+          {/* Real-time Project Search */}
+          <div className="relative max-w-md mx-auto">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search projects by name, tech (React, C++, SQL)..."
+              className="w-full pl-10 pr-10 py-2 rounded-xl text-xs sm:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          {/* Category Filters */}
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <button
+              id="filter-proj-all"
+              onClick={() => {
+                setActiveFilter('all');
+                playUiSound('tab');
+              }}
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer ${
+                activeFilter === 'all'
+                  ? 'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/20'
+                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
+              }`}
+            >
+              {t.projects.filterAll} ({PROJECTS_DATA.length})
+            </button>
+            <button
+              id="filter-proj-frontend"
+              onClick={() => {
+                setActiveFilter('frontend');
+                playUiSound('tab');
+              }}
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer ${
+                activeFilter === 'frontend'
+                  ? 'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/20'
+                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
+              }`}
+            >
+              {t.projects.filterFrontend} ({PROJECTS_DATA.filter((p) => p.category === 'frontend').length})
+            </button>
+            <button
+              id="filter-proj-web"
+              onClick={() => {
+                setActiveFilter('web');
+                playUiSound('tab');
+              }}
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer ${
+                activeFilter === 'web'
+                  ? 'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/20'
+                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
+              }`}
+            >
+              {t.projects.filterWeb} ({PROJECTS_DATA.filter((p) => p.category === 'web').length})
+            </button>
+            <button
+              id="filter-proj-system"
+              onClick={() => {
+                setActiveFilter('system');
+                playUiSound('tab');
+              }}
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer ${
+                activeFilter === 'system'
+                  ? 'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/20'
+                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
+              }`}
+            >
+              {t.projects.filterDatabase} ({PROJECTS_DATA.filter((p) => p.category === 'system').length})
+            </button>
+          </div>
         </div>
 
         {/* Project Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredProjects.map((project) => (
-            <div
-              key={project.id}
-              id={`project-card-${project.id}`}
-              className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-xl hover:border-indigo-300 dark:hover:border-indigo-800/80 transition-all duration-300 flex flex-col justify-between group"
+        {filteredProjects.length === 0 ? (
+          <div className="py-16 text-center text-slate-400 max-w-md mx-auto space-y-3">
+            <Search className="w-10 h-10 mx-auto text-slate-400 opacity-50" />
+            <p className="text-base font-semibold text-slate-700 dark:text-slate-300">
+              No matching projects found
+            </p>
+            <p className="text-xs text-slate-500">
+              Try resetting your search query or switching the category filter.
+            </p>
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setActiveFilter('all');
+                playUiSound('tab');
+              }}
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-500 cursor-pointer"
             >
-              <div>
-                {/* Project Visual / Illustration Mockup */}
-                <div className="relative h-48 sm:h-52 w-full overflow-hidden border-b border-slate-100 dark:border-slate-800 bg-slate-950">
-                  {getProjectIllustration(project)}
+              Reset Filters
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredProjects.map((project) => (
+              <div
+                key={project.id}
+                id={`project-card-${project.id}`}
+                className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-xl hover:border-indigo-300 dark:hover:border-indigo-800/80 transition-all duration-300 flex flex-col justify-between group"
+              >
+                <div>
+                  {/* Project Visual / Illustration Mockup */}
+                  <div className="relative h-48 sm:h-52 w-full overflow-hidden border-b border-slate-100 dark:border-slate-800 bg-slate-950">
+                    {getProjectIllustration(project)}
 
-                  {/* Badge */}
-                  <div className="absolute top-3 left-3">
-                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-950/80 text-white backdrop-blur-md border border-white/10 shadow-sm">
-                      {project.badge}
-                    </span>
-                  </div>
-
-                  {/* Quick View Button overlay */}
-                  <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <button
-                      onClick={() => setSelectedProject(project)}
-                      className="px-4 py-2 rounded-xl bg-white text-slate-900 font-semibold text-xs flex items-center gap-1.5 shadow-lg hover:bg-slate-100 transition-transform active:scale-95 cursor-pointer"
-                    >
-                      <Eye className="w-4 h-4 text-indigo-600" />
-                      <span>{t.projects.viewDetails}</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Project Details */}
-                <div className="p-6 space-y-4">
-                  <div className="space-y-1.5">
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                      {project.title}
-                    </h3>
-                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-3">
-                      {project.shortDescription}
-                    </p>
-                  </div>
-
-                  {/* Tech stack tags */}
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {project.technologies.map((tech) => (
-                      <span
-                        key={tech}
-                        className="px-2.5 py-1 text-[11px] font-medium rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700"
-                      >
-                        {tech}
+                    {/* Badge */}
+                    <div className="absolute top-3 left-3">
+                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-950/80 text-white backdrop-blur-md border border-white/10 shadow-sm">
+                        {project.badge}
                       </span>
-                    ))}
+                    </div>
+
+                    {/* Copy Link Button on Thumbnail */}
+                    <button
+                      onClick={() => handleCopyLink(project)}
+                      title="Copy Project Demo Link"
+                      className="absolute top-3 right-3 p-2 rounded-lg bg-slate-950/80 hover:bg-slate-900 text-white border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-md cursor-pointer"
+                    >
+                      {copiedProjectId === project.id ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5 text-slate-300" />
+                      )}
+                    </button>
+
+                    {/* Quick View Button overlay */}
+                    <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <button
+                        onClick={() => {
+                          playUiSound('pop');
+                          setSelectedProject(project);
+                        }}
+                        className="px-4 py-2 rounded-xl bg-white text-slate-900 font-semibold text-xs flex items-center gap-1.5 shadow-lg hover:bg-slate-100 transition-transform active:scale-95 cursor-pointer"
+                      >
+                        <Eye className="w-4 h-4 text-indigo-600" />
+                        <span>{t.projects.viewDetails}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Project Details */}
+                  <div className="p-6 space-y-4">
+                    <div className="space-y-1.5">
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                        {project.title}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-3">
+                        {project.shortDescription}
+                      </p>
+                    </div>
+
+                    {/* Tech stack tags */}
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {project.technologies.map((tech) => (
+                        <span
+                          key={tech}
+                          className="px-2.5 py-1 text-[11px] font-medium rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700"
+                        >
+                          {tech}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
+
+                {/* Action Buttons: Live Demo, Details & GitHub */}
+                <div className="px-6 pb-6 pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center gap-2">
+                  <a
+                    id={`project-live-btn-${project.id}`}
+                    href={project.liveDemoUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={handleLiveDemoClick}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-white bg-indigo-600 hover:bg-indigo-500 transition-colors shadow-sm shadow-indigo-600/20 active:scale-95 cursor-pointer"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>{t.projects.liveDemo}</span>
+                  </a>
+
+                  <button
+                    id={`project-details-btn-${project.id}`}
+                    onClick={() => {
+                      playUiSound('pop');
+                      setSelectedProject(project);
+                    }}
+                    title={t.projects.viewDetails}
+                    className="inline-flex items-center justify-center gap-1 px-3 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
+                  >
+                    <Eye className="w-4 h-4 text-slate-500" />
+                    <span className="hidden sm:inline">{t.projects.viewDetails}</span>
+                  </button>
+
+                  <a
+                    id={`project-github-btn-${project.id}`}
+                    href={project.githubUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={t.projects.sourceCode}
+                    onClick={() => playUiSound('click')}
+                    className="inline-flex items-center justify-center p-2.5 rounded-xl font-semibold text-xs sm:text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors"
+                  >
+                    <Github className="w-4 h-4" />
+                  </a>
+                </div>
               </div>
-
-              {/* Action Buttons: Live Demo, Details & GitHub */}
-              <div className="px-6 pb-6 pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center gap-2">
-                <a
-                  id={`project-live-btn-${project.id}`}
-                  href={project.liveDemoUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-white bg-indigo-600 hover:bg-indigo-500 transition-colors shadow-sm shadow-indigo-600/20 active:scale-95 cursor-pointer"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span>{t.projects.liveDemo}</span>
-                </a>
-
-                <button
-                  id={`project-details-btn-${project.id}`}
-                  onClick={() => setSelectedProject(project)}
-                  title={t.projects.viewDetails}
-                  className="inline-flex items-center justify-center gap-1 px-3 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
-                >
-                  <Eye className="w-4 h-4 text-slate-500" />
-                  <span className="hidden sm:inline">{t.projects.viewDetails}</span>
-                </button>
-
-                <a
-                  id={`project-github-btn-${project.id}`}
-                  href={project.githubUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  title={t.projects.sourceCode}
-                  className="inline-flex items-center justify-center p-2.5 rounded-xl font-semibold text-xs sm:text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors"
-                >
-                  <Github className="w-4 h-4" />
-                </a>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Project Detail Modal */}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Moon, Sun, Menu, X, FileText, Mail, Globe, Check } from 'lucide-react';
+import { Moon, Sun, Menu, X, FileText, Mail, Globe, Check, Command, Search } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { NAV_ITEMS } from '../data/portfolioData';
@@ -8,9 +8,10 @@ import { Language } from '../types';
 
 interface NavbarProps {
   onOpenResume: () => void;
+  onOpenCommandPalette?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onOpenResume }) => {
+export const Navbar: React.FC<NavbarProps> = ({ onOpenResume, onOpenCommandPalette }) => {
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage, t, languageOptions } = useLanguage();
   const [activeSection, setActiveSection] = useState<string>('home');
@@ -197,6 +198,22 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenResume }) => {
                 </div>
               )}
             </div>
+
+            {/* Command Palette Trigger */}
+            {onOpenCommandPalette && (
+              <button
+                id="header-command-palette-btn"
+                onClick={onOpenCommandPalette}
+                title="Search & Quick Actions (Cmd+K / Ctrl+K)"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800/90 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 hover:text-indigo-600 dark:hover:text-indigo-300 border border-slate-200 dark:border-slate-700/70 transition-all duration-200 active:scale-95 shadow-sm cursor-pointer"
+              >
+                <Search className="w-3.5 h-3.5 text-indigo-500" />
+                <span className="hidden md:inline font-normal text-slate-500 dark:text-slate-400">Search</span>
+                <kbd className="hidden md:inline-flex items-center gap-0.5 text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-slate-200/70 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                  <Command className="w-2.5 h-2.5" />K
+                </kbd>
+              </button>
+            )}
 
             {/* Theme Toggle */}
             <button
