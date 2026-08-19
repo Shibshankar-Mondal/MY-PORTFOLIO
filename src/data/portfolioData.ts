@@ -271,7 +271,7 @@ export const PROJECTS_DATA: ProjectItem[] = [
       'Persistent local high-score tracking and best score comparison',
       'Mobile-ready responsive touch swipe and desktop keyboard arrow support',
     ],
-    liveDemoUrl: 'https://aistudio.google.com/apps/ee050c0a-87ec-4be7-b039-6aa75d522a1c?showPreview=true&project=gen-lang-client-0382174279&showAssistant=true',
+    liveDemoUrl: 'https://block-slide-seven.vercel.app',
     githubUrl: 'https://github.com/shibshankar/block-slide-game',
     imageBgGradient: 'from-sky-600/20 via-cyan-600/20 to-blue-600/20',
     accentColor: 'sky',

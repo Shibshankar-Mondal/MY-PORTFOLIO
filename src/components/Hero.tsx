@@ -7,13 +7,9 @@ import {
   Linkedin,
   Instagram,
   MapPin,
-  Upload,
-  RotateCcw,
-  Images,
-  Check,
-  Terminal,
-  Laptop,
   ExternalLink,
+  Upload,
+  Sparkles,
 } from 'lucide-react';
 import { PERSONAL_INFO } from '../data/portfolioData';
 import { useLanguage } from '../context/LanguageContext';
@@ -24,38 +20,9 @@ interface HeroProps {
 
 const DEFAULT_DEVELOPER_IMAGE = '/images/shibshankar-developer.svg';
 
-const WORKSPACE_PRESETS = [
-  {
-    id: 'developer-workspace-primary',
-    name: 'Shibshankar Developer Workstation (Default)',
-    url: '/images/shibshankar-developer.svg',
-  },
-  {
-    id: 'coding-dual-screens',
-    name: 'Dual Monitors & Laptop Setup',
-    url: 'https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?auto=format&fit=crop&w=1200&q=80',
-  },
-  {
-    id: 'developer-laptop-ide',
-    name: 'Developer at Desk with IDE Displays',
-    url: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80',
-  },
-  {
-    id: 'coding-workstation',
-    name: 'Warm Studio Coding Workstation',
-    url: 'https://images.unsplash.com/photo-1587620962725-abab7fe55159?auto=format&fit=crop&w=1200&q=80',
-  },
-  {
-    id: 'focused-workspace',
-    name: 'Focused Multi-Screen Setup',
-    url: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=1200&q=80',
-  },
-];
-
 export const Hero: React.FC<HeroProps> = ({ onOpenResume }) => {
   const { t } = useLanguage();
   const [avatarImage, setAvatarImage] = useState<string>(DEFAULT_DEVELOPER_IMAGE);
-  const [showPresetsMenu, setShowPresetsMenu] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -93,7 +60,6 @@ export const Hero: React.FC<HeroProps> = ({ onOpenResume }) => {
         const base64 = reader.result as string;
         setAvatarImage(base64);
         localStorage.setItem('user_custom_avatar', base64);
-        setShowPresetsMenu(false);
       };
       reader.readAsDataURL(file);
     }
@@ -123,19 +89,6 @@ export const Hero: React.FC<HeroProps> = ({ onOpenResume }) => {
     if (file) {
       processFile(file);
     }
-  };
-
-  const handleSelectPreset = (url: string) => {
-    setAvatarImage(url);
-    localStorage.setItem('user_custom_avatar', url);
-    setShowPresetsMenu(false);
-  };
-
-  const handleResetAvatar = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    localStorage.removeItem('user_custom_avatar');
-    setAvatarImage(DEFAULT_DEVELOPER_IMAGE);
-    setShowPresetsMenu(false);
   };
 
   const scrollTo = (id: string) => {
@@ -298,26 +251,32 @@ export const Hero: React.FC<HeroProps> = ({ onOpenResume }) => {
               id="hero-developer-showcase-card"
               className="relative rounded-3xl p-1.5 bg-gradient-to-b from-indigo-500/40 via-purple-600/25 to-slate-900/60 border border-indigo-500/35 shadow-[0_0_60px_-15px_rgba(99,102,241,0.45)]"
             >
-              <div className="rounded-[22px] bg-[#070b16] border border-slate-800/90 p-3 sm:p-4 space-y-3">
+              <div className="rounded-[22px] bg-[#070b16] border border-slate-800/90 p-3.5 sm:p-4 space-y-3">
                 {/* Photo / Workstation Display Container */}
                 <div
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                  className={`relative rounded-2xl overflow-hidden aspect-[4/3.8] bg-[#0c1222] border transition-all duration-300 group ${
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`relative rounded-2xl overflow-hidden aspect-[4/3.8] bg-[#0c1222] border transition-all duration-300 group cursor-pointer ${
                     isDragging
                       ? 'border-indigo-400 ring-4 ring-indigo-500/50 scale-[1.01]'
-                      : 'border-slate-800/80 shadow-inner'
+                      : 'border-slate-800/80 shadow-inner hover:border-indigo-500/50'
                   }`}
+                  title="Click or drag-and-drop to upload/change your photo"
                 >
                   <img
                     id="hero-showcase-image"
                     src={avatarImage}
                     alt={PERSONAL_INFO.name}
                     referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 cursor-pointer"
-                    onClick={() => fileInputRef.current?.click()}
-                    title="Click to select or change image"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      if (target.src !== window.location.origin + DEFAULT_DEVELOPER_IMAGE) {
+                        target.src = DEFAULT_DEVELOPER_IMAGE;
+                      }
+                    }}
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                   />
 
                   {/* Drag-over Backdrop Overlay */}
@@ -329,6 +288,14 @@ export const Hero: React.FC<HeroProps> = ({ onOpenResume }) => {
                     </div>
                   )}
 
+                  {/* Hover Upload Hint Button (Top Right) */}
+                  <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-30 pointer-events-none">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-950/85 backdrop-blur-md border border-indigo-500/50 text-xs font-semibold text-indigo-200 shadow-xl">
+                      <Upload className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>Change Photo</span>
+                    </span>
+                  </div>
+
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -337,11 +304,12 @@ export const Hero: React.FC<HeroProps> = ({ onOpenResume }) => {
                     className="hidden"
                   />
 
-                  {/* Floating Current Focus Badge Overlay on Photo matching reference */}
-                  <div className="absolute bottom-3 left-3 right-3 p-3.5 rounded-xl bg-[#0c1427]/92 backdrop-blur-md border border-slate-800/90 flex items-center justify-between shadow-2xl pointer-events-none">
+                  {/* Floating Current Focus Badge Overlay on Photo */}
+                  <div className="absolute bottom-3 left-3 right-3 p-3.5 rounded-xl bg-[#0c1427]/92 backdrop-blur-md border border-slate-800/90 flex items-center justify-between shadow-2xl pointer-events-none z-20">
                     <div>
-                      <div className="text-[10px] font-bold tracking-wider text-indigo-400 uppercase">
-                        CURRENT FOCUS
+                      <div className="text-[10px] font-bold tracking-wider text-indigo-400 uppercase flex items-center gap-1.5">
+                        <Sparkles className="w-3 h-3 text-indigo-400" />
+                        <span>CURRENT FOCUS</span>
                       </div>
                       <div className="text-xs sm:text-sm font-bold text-white tracking-tight mt-0.5">
                         Full-Stack Web Dev &amp; C++ DSA
@@ -353,7 +321,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenResume }) => {
                   </div>
                 </div>
 
-                {/* Bottom Code Terminal Box (matching the reference prompt snippet) */}
+                {/* Bottom Code Terminal Box */}
                 <div className="rounded-xl bg-[#050914] border border-slate-800/90 p-3.5 sm:p-4 font-mono text-xs text-slate-300 space-y-2 shadow-inner">
                   <div className="flex items-center justify-between pb-1.5 border-b border-slate-800/60 text-[11px]">
                     <div className="flex items-center gap-2">
