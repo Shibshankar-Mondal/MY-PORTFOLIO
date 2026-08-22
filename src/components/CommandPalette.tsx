@@ -209,6 +209,18 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       },
     },
     {
+      id: 'toggle-3d-bg',
+      title: 'Toggle 3D Background Space',
+      subtitle: 'Turn full-screen Three.js WebGL constellation on/off',
+      category: 'Preferences',
+      icon: <Sparkles className="w-4 h-4 text-indigo-400" />,
+      action: () => {
+        const current = localStorage.getItem('three_bg_enabled') !== 'false';
+        localStorage.setItem('three_bg_enabled', String(!current));
+        window.location.reload();
+      },
+    },
+    {
       id: 'lang-en',
       title: 'Change Language: English',
       subtitle: language === 'en' ? 'Currently active' : 'Switch interface to English',

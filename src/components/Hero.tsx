@@ -205,7 +205,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenResume }) => {
   return (
     <section
       id="home"
-      className="relative min-h-[calc(100vh-4.5rem)] flex items-center pt-24 pb-16 lg:py-24 overflow-hidden bg-slate-950 text-slate-100"
+      className="relative min-h-[calc(100vh-4.5rem)] flex items-center pt-24 pb-16 lg:py-24 overflow-hidden bg-transparent text-slate-900 dark:text-slate-100"
     >
       {/* Background Ambient Glows */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden -z-10">

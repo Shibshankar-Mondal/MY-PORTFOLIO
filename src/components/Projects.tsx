@@ -162,7 +162,7 @@ export const Projects: React.FC = () => {
   };
 
   return (
-    <section id="projects" className="py-24 relative bg-slate-50/50 dark:bg-slate-900/30">
+    <section id="projects" className="py-24 relative bg-transparent">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto space-y-4 mb-12">

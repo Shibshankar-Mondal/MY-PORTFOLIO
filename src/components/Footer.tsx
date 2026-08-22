@@ -53,7 +53,7 @@ export const Footer: React.FC = () => {
   return (
     <footer
       id="portfolio-footer"
-      className="bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 py-12"
+      className="bg-white/40 dark:bg-slate-950/40 backdrop-blur-md border-t border-slate-200/50 dark:border-slate-800/50 text-slate-600 dark:text-slate-400 py-12"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-8 pb-8 border-b border-slate-100 dark:border-slate-900">

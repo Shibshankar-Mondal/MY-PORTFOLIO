@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
+import { ThreeBackground } from './components/ThreeBackground';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { About } from './components/About';
@@ -22,12 +23,15 @@ export default function App() {
   return (
     <ThemeProvider>
       <LanguageProvider>
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300 selection:bg-indigo-500 selection:text-white flex flex-col font-sans">
+        <div className="min-h-screen bg-transparent text-slate-900 dark:text-slate-100 transition-colors duration-300 selection:bg-indigo-500 selection:text-white flex flex-col font-sans relative">
+          {/* Full Screen 3D Interactive WebGL Animation */}
+          <ThreeBackground />
+
           {/* Navigation Bar */}
           <Navbar onOpenResume={() => setIsResumeOpen(true)} />
 
           {/* Main Content Sections */}
-          <main className="flex-1 space-y-0">
+          <main className="flex-1 space-y-0 relative z-10">
             <Hero onOpenResume={() => setIsResumeOpen(true)} />
             <About />
             <Skills />
