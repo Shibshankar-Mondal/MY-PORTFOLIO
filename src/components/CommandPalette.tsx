@@ -209,9 +209,45 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       },
     },
     {
+      id: 'earth-cyber',
+      title: '3D Earth: Cyber Matrix Mode',
+      subtitle: 'Dot-matrix continents, pulsating beacons & live data arcs',
+      category: 'Preferences',
+      icon: <Globe className="w-4 h-4 text-cyan-400" />,
+      action: () => {
+        localStorage.setItem('portfolio_earth_mode', 'cyber_matrix');
+        localStorage.setItem('three_bg_enabled', 'true');
+        window.location.reload();
+      },
+    },
+    {
+      id: 'earth-marble',
+      title: '3D Earth: Blue Marble Mode',
+      subtitle: 'Realistic Day/Night globe with clouds and city lights',
+      category: 'Preferences',
+      icon: <Globe className="w-4 h-4 text-blue-500" />,
+      action: () => {
+        localStorage.setItem('portfolio_earth_mode', 'blue_marble');
+        localStorage.setItem('three_bg_enabled', 'true');
+        window.location.reload();
+      },
+    },
+    {
+      id: 'earth-vector',
+      title: '3D Earth: Holographic Vector Mode',
+      subtitle: 'Geodesic wireframe globe with orbital telemetry rings',
+      category: 'Preferences',
+      icon: <Globe className="w-4 h-4 text-purple-400" />,
+      action: () => {
+        localStorage.setItem('portfolio_earth_mode', 'holo_vector');
+        localStorage.setItem('three_bg_enabled', 'true');
+        window.location.reload();
+      },
+    },
+    {
       id: 'toggle-3d-bg',
-      title: 'Toggle 3D Background Space',
-      subtitle: 'Turn full-screen Three.js WebGL constellation on/off',
+      title: 'Toggle 3D Earth Animation',
+      subtitle: 'Turn full-screen Three.js WebGL 3D Earth on/off',
       category: 'Preferences',
       icon: <Sparkles className="w-4 h-4 text-indigo-400" />,
       action: () => {

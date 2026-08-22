@@ -1,11 +1,63 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { useTheme } from '../context/ThemeContext';
-import { Sparkles, Eye, EyeOff, Sliders, RefreshCw, Zap } from 'lucide-react';
+import {
+  Globe,
+  Sparkles,
+  Eye,
+  EyeOff,
+  Sliders,
+  RefreshCw,
+  Zap,
+  Layers,
+  Radio,
+  Navigation,
+  Compass,
+} from 'lucide-react';
 import { playUiSound } from '../utils/soundEffects';
+import {
+  TECH_HUBS,
+  DATA_CONNECTIONS,
+  latLngToVector3,
+  createArcCurve,
+  createProceduralEarthTexture,
+  createProceduralCloudsTexture,
+  generateEarthPointMatrix,
+  TechHub,
+} from '../utils/earthTextures';
 
-// Helper to generate glowing circular orb particle texture dynamically
-function createGlowSpriteTexture(): THREE.Texture {
+export type EarthMode = 'cyber_matrix' | 'blue_marble' | 'holo_vector';
+
+interface EarthModeMeta {
+  id: EarthMode;
+  label: string;
+  desc: string;
+  icon: string;
+}
+
+const EARTH_MODES: EarthModeMeta[] = [
+  {
+    id: 'cyber_matrix',
+    label: 'Cyber Tech Matrix',
+    desc: 'Dot-matrix continents, pulsating beacons & live data arcs',
+    icon: '🌐',
+  },
+  {
+    id: 'blue_marble',
+    label: 'Blue Marble Globe',
+    desc: 'Day/Night illumination with atmospheric clouds & lights',
+    icon: '🌍',
+  },
+  {
+    id: 'holo_vector',
+    label: 'Holographic Vector',
+    desc: 'Geodesic wireframe globe with orbital telemetry rings',
+    icon: '🕸️',
+  },
+];
+
+// Helper to generate glowing circular orb texture
+function createGlowSpriteTexture(colorHex = '#38bdf8'): THREE.Texture {
   const canvas = document.createElement('canvas');
   canvas.width = 64;
   canvas.height = 64;
@@ -15,7 +67,7 @@ function createGlowSpriteTexture(): THREE.Texture {
     const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
     gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
     gradient.addColorStop(0.2, 'rgba(165, 180, 252, 0.9)');
-    gradient.addColorStop(0.5, 'rgba(99, 102, 241, 0.5)');
+    gradient.addColorStop(0.5, colorHex);
     gradient.addColorStop(0.8, 'rgba(56, 189, 248, 0.15)');
     gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
@@ -32,14 +84,34 @@ export const ThreeBackground: React.FC = () => {
   const { theme } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // User Preferences from localStorage
+  const [earthMode, setEarthMode] = useState<EarthMode>(() => {
+    const saved = localStorage.getItem('portfolio_earth_mode');
+    if (saved === 'cyber_matrix' || saved === 'blue_marble' || saved === 'holo_vector') {
+      return saved;
+    }
+    return 'cyber_matrix';
+  });
+
   const [isEnabled, setIsEnabled] = useState<boolean>(() => {
     return localStorage.getItem('three_bg_enabled') !== 'false';
   });
-  const [speedMultiplier, setSpeedMultiplier] = useState<number>(1);
+
+  const [speedMultiplier, setSpeedMultiplier] = useState<number>(() => {
+    const saved = localStorage.getItem('portfolio_earth_speed');
+    return saved ? parseFloat(saved) : 1;
+  });
+
+  const [showDataArcs, setShowDataArcs] = useState<boolean>(true);
   const [showControls, setShowControls] = useState<boolean>(false);
-  const [activeGeometry, setActiveGeometry] = useState<'sphere' | 'torus' | 'icosahedron'>('sphere');
+  const [activeCityTooltip, setActiveCityTooltip] = useState<TechHub | null>(null);
 
   const isDark = theme === 'dark';
+
+  // Manual rotation refs for drag
+  const isDraggingRef = useRef(false);
+  const previousMousePositionRef = useRef({ x: 0, y: 0 });
+  const globeRotationVelocityRef = useRef({ x: 0, y: 0.0018 });
 
   useEffect(() => {
     if (!isEnabled || !containerRef.current) return;
@@ -50,13 +122,11 @@ export const ThreeBackground: React.FC = () => {
 
     // --- 1. Three.js Scene, Camera, Renderer ---
     const scene = new THREE.Scene();
-    
-    // Cosmic Fog
-    const fogColor = isDark ? 0x070919 : 0xf1f5f9;
-    scene.fog = new THREE.FogExp2(fogColor, 0.0008);
+    const fogColor = isDark ? 0x050716 : 0xf1f5f9;
+    scene.fog = new THREE.FogExp2(fogColor, 0.0006);
 
-    const camera = new THREE.PerspectiveCamera(60, width / height, 1, 3000);
-    camera.position.z = 850;
+    const camera = new THREE.PerspectiveCamera(50, width / height, 1, 4000);
+    camera.position.z = 820;
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -65,149 +135,347 @@ export const ThreeBackground: React.FC = () => {
     });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setClearColor(isDark ? 0x060814 : 0xf8fafc, isDark ? 1 : 0.95);
+    renderer.setClearColor(isDark ? 0x050716 : 0xf8fafc, isDark ? 1 : 0.95);
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
-    // --- 2. Celestial Nodes (Starfield Particles) ---
-    const particleCount = window.innerWidth < 768 ? 85 : 150;
-    const maxDistance = 175;
-    const maxConnections = particleCount * 6;
+    // --- 2. Ambient Deep Space Starfield & Constellation Network ---
+    const starCount = window.innerWidth < 768 ? 90 : 180;
+    const starPositions = new Float32Array(starCount * 3);
+    const starColors = new Float32Array(starCount * 3);
+    const starSizes = new Float32Array(starCount);
 
-    const particlePositions = new Float32Array(particleCount * 3);
-    const particleVelocities: Array<{ x: number; y: number; z: number }> = [];
-    const particleColors = new Float32Array(particleCount * 3);
-    const particleSizes = new Float32Array(particleCount);
+    const starPalette = isDark
+      ? [
+          new THREE.Color('#38bdf8'),
+          new THREE.Color('#818cf8'),
+          new THREE.Color('#c084fc'),
+          new THREE.Color('#67e8f9'),
+          new THREE.Color('#e0e7ff'),
+        ]
+      : [
+          new THREE.Color('#4338ca'),
+          new THREE.Color('#0284c7'),
+          new THREE.Color('#6d28d9'),
+          new THREE.Color('#2563eb'),
+        ];
 
-    const colorPaletteDark = [
-      new THREE.Color('#38bdf8'), // Electric cyan
-      new THREE.Color('#818cf8'), // Soft indigo
-      new THREE.Color('#c084fc'), // Vivid lavender purple
-      new THREE.Color('#a855f7'), // Deep purple
-      new THREE.Color('#67e8f9'), // Light sky
-    ];
-
-    const colorPaletteLight = [
-      new THREE.Color('#4f46e5'), // Rich Indigo
-      new THREE.Color('#0284c7'), // Deep Sky Blue
-      new THREE.Color('#7c3aed'), // Royal Violet
-      new THREE.Color('#2563eb'), // Cobalt
-    ];
-
-    const palette = isDark ? colorPaletteDark : colorPaletteLight;
-
-    const boundX = 900;
-    const boundY = 700;
-    const boundZ = 600;
-
-    for (let i = 0; i < particleCount; i++) {
+    const bound = 1400;
+    for (let i = 0; i < starCount; i++) {
       const i3 = i * 3;
-      particlePositions[i3] = (Math.random() - 0.5) * boundX * 2;
-      particlePositions[i3 + 1] = (Math.random() - 0.5) * boundY * 2;
-      particlePositions[i3 + 2] = (Math.random() - 0.5) * boundZ * 2;
+      starPositions[i3] = (Math.random() - 0.5) * bound * 2;
+      starPositions[i3 + 1] = (Math.random() - 0.5) * bound * 2;
+      starPositions[i3 + 2] = (Math.random() - 0.5) * bound * 2 - 300;
 
-      particleVelocities.push({
-        x: (Math.random() - 0.5) * 0.45,
-        y: (Math.random() - 0.5) * 0.45,
-        z: (Math.random() - 0.5) * 0.3,
-      });
+      const col = starPalette[Math.floor(Math.random() * starPalette.length)];
+      starColors[i3] = col.r;
+      starColors[i3 + 1] = col.g;
+      starColors[i3 + 2] = col.b;
 
-      const color = palette[Math.floor(Math.random() * palette.length)];
-      particleColors[i3] = color.r;
-      particleColors[i3 + 1] = color.g;
-      particleColors[i3 + 2] = color.b;
-
-      particleSizes[i] = Math.random() * 18 + 12;
+      starSizes[i] = Math.random() * 16 + 10;
     }
 
-    const particlesGeometry = new THREE.BufferGeometry();
-    particlesGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-    particlesGeometry.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
-    particlesGeometry.setAttribute('size', new THREE.BufferAttribute(particleSizes, 1));
+    const starsGeo = new THREE.BufferGeometry();
+    starsGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+    starsGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
 
-    const glowTexture = createGlowSpriteTexture();
-
-    const particlesMaterial = new THREE.PointsMaterial({
-      size: isDark ? 22 : 16,
+    const glowTexture = createGlowSpriteTexture('#818cf8');
+    const starsMat = new THREE.PointsMaterial({
+      size: isDark ? 20 : 15,
       map: glowTexture,
       vertexColors: true,
       transparent: true,
-      opacity: isDark ? 0.95 : 0.75,
+      opacity: isDark ? 0.85 : 0.6,
       blending: isDark ? THREE.AdditiveBlending : THREE.NormalBlending,
       depthWrite: false,
     });
+    const starsMesh = new THREE.Points(starsGeo, starsMat);
+    scene.add(starsMesh);
 
-    const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
-    scene.add(particlesMesh);
+    // --- 3. Main 3D Earth Group ---
+    const globeRadius = window.innerWidth < 768 ? 160 : 210;
+    const earthGroup = new THREE.Group();
+    // Realistic Earth Axial Tilt (23.5 degrees)
+    earthGroup.rotation.z = 23.5 * (Math.PI / 180);
+    // Center position offset slightly to right on desktop for great portfolio composition
+    earthGroup.position.set(window.innerWidth > 1024 ? 120 : 0, 0, 0);
+    scene.add(earthGroup);
 
-    // --- 3. Dynamic Connecting Constellation Lines ---
-    const linePositions = new Float32Array(maxConnections * 6);
-    const lineColors = new Float32Array(maxConnections * 6);
+    // --- 4. Earth Mode Specific Assets ---
 
-    const linesPositionAttr = new THREE.BufferAttribute(linePositions, 3);
-    linesPositionAttr.setUsage(THREE.DynamicDrawUsage);
-    const linesColorAttr = new THREE.BufferAttribute(lineColors, 3);
-    linesColorAttr.setUsage(THREE.DynamicDrawUsage);
+    // A. Mode 1: Cyber Matrix Dot Grid
+    let matrixPointsMesh: THREE.Points | null = null;
+    let cyberInnerSphere: THREE.Mesh | null = null;
 
-    const linesGeometry = new THREE.BufferGeometry();
-    linesGeometry.setAttribute('position', linesPositionAttr);
-    linesGeometry.setAttribute('color', linesColorAttr);
+    if (earthMode === 'cyber_matrix') {
+      const matrixData = generateEarthPointMatrix(globeRadius, 4200);
+      const matrixGeo = new THREE.BufferGeometry();
+      matrixGeo.setAttribute('position', new THREE.BufferAttribute(matrixData.positions, 3));
+      matrixGeo.setAttribute('color', new THREE.BufferAttribute(matrixData.colors, 3));
 
-    const linesMaterial = new THREE.LineBasicMaterial({
-      vertexColors: true,
+      const matrixMat = new THREE.PointsMaterial({
+        size: isDark ? 10 : 8,
+        map: glowTexture,
+        vertexColors: true,
+        transparent: true,
+        opacity: isDark ? 0.95 : 0.8,
+        blending: isDark ? THREE.AdditiveBlending : THREE.NormalBlending,
+        depthWrite: false,
+      });
+
+      matrixPointsMesh = new THREE.Points(matrixGeo, matrixMat);
+      earthGroup.add(matrixPointsMesh);
+
+      // Dark translucent inner ocean sphere
+      const sphereGeo = new THREE.SphereGeometry(globeRadius - 2, 48, 48);
+      const sphereMat = new THREE.MeshBasicMaterial({
+        color: isDark ? 0x050b1e : 0xe0e7ff,
+        transparent: true,
+        opacity: isDark ? 0.85 : 0.6,
+      });
+      cyberInnerSphere = new THREE.Mesh(sphereGeo, sphereMat);
+      earthGroup.add(cyberInnerSphere);
+    }
+
+    // B. Mode 2: Blue Marble Globe with Clouds
+    let marbleMesh: THREE.Mesh | null = null;
+    let cloudsMesh: THREE.Mesh | null = null;
+
+    if (earthMode === 'blue_marble') {
+      const earthTex = createProceduralEarthTexture(isDark);
+      const marbleGeo = new THREE.SphereGeometry(globeRadius, 64, 64);
+      const marbleMat = new THREE.MeshBasicMaterial({
+        map: earthTex,
+        transparent: true,
+        opacity: isDark ? 0.95 : 0.9,
+      });
+      marbleMesh = new THREE.Mesh(marbleGeo, marbleMat);
+      earthGroup.add(marbleMesh);
+
+      // Clouds Layer
+      const cloudsTex = createProceduralCloudsTexture();
+      const cloudsGeo = new THREE.SphereGeometry(globeRadius + 5, 48, 48);
+      const cloudsMat = new THREE.MeshBasicMaterial({
+        map: cloudsTex,
+        transparent: true,
+        opacity: isDark ? 0.35 : 0.45,
+        blending: isDark ? THREE.AdditiveBlending : THREE.NormalBlending,
+      });
+      cloudsMesh = new THREE.Mesh(cloudsGeo, cloudsMat);
+      earthGroup.add(cloudsMesh);
+    }
+
+    // C. Mode 3: Holographic Vector Geodesic Wireframe
+    let holoWireframeMesh: THREE.LineSegments | null = null;
+    let holoIcosahedron: THREE.LineSegments | null = null;
+
+    if (earthMode === 'holo_vector') {
+      const holoGeo = new THREE.SphereGeometry(globeRadius, 28, 28);
+      const wireframe = new THREE.WireframeGeometry(holoGeo);
+      const wireMat = new THREE.LineBasicMaterial({
+        color: isDark ? 0x38bdf8 : 0x4f46e5,
+        transparent: true,
+        opacity: isDark ? 0.45 : 0.3,
+        blending: isDark ? THREE.AdditiveBlending : THREE.NormalBlending,
+      });
+      holoWireframeMesh = new THREE.LineSegments(wireframe, wireMat);
+      earthGroup.add(holoWireframeMesh);
+
+      // Inner Geodesic Core
+      const icoGeo = new THREE.IcosahedronGeometry(globeRadius * 0.75, 2);
+      const icoWire = new THREE.WireframeGeometry(icoGeo);
+      const icoMat = new THREE.LineBasicMaterial({
+        color: isDark ? 0xa855f7 : 0x7c3aed,
+        transparent: true,
+        opacity: isDark ? 0.35 : 0.2,
+        blending: isDark ? THREE.AdditiveBlending : THREE.NormalBlending,
+      });
+      holoIcosahedron = new THREE.LineSegments(icoWire, icoMat);
+      earthGroup.add(holoIcosahedron);
+    }
+
+    // --- 5. Atmospheric Fresnel Glow Halos ---
+    const atmosphereRadius = globeRadius * 1.15;
+    const atmosphereGeo = new THREE.SphereGeometry(atmosphereRadius, 36, 36);
+    const atmosphereMat = new THREE.ShaderMaterial({
+      vertexShader: `
+        varying vec3 vNormal;
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vNormal;
+        uniform vec3 uColor;
+        uniform float uIntensity;
+        void main() {
+          float intensity = pow(0.72 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.8) * uIntensity;
+          gl_FragColor = vec4(uColor, intensity);
+        }
+      `,
+      uniforms: {
+        uColor: { value: new THREE.Color(isDark ? '#38bdf8' : '#6366f1') },
+        uIntensity: { value: isDark ? 1.6 : 0.9 },
+      },
+      blending: THREE.AdditiveBlending,
+      side: THREE.BackSide,
       transparent: true,
-      opacity: isDark ? 0.65 : 0.35,
-      blending: isDark ? THREE.AdditiveBlending : THREE.NormalBlending,
       depthWrite: false,
     });
+    const atmosphereMesh = new THREE.Mesh(atmosphereGeo, atmosphereMat);
+    earthGroup.add(atmosphereMesh);
 
-    const linesMesh = new THREE.LineSegments(linesGeometry, linesMaterial);
-    scene.add(linesMesh);
+    // --- 6. Equatorial & Polar Orbital Telemetry Rings ---
+    const orbitalGroup = new THREE.Group();
+    earthGroup.add(orbitalGroup);
 
-    // --- 4. 3D Floating Wireframe Meshes (Matching Reference Geodesic Structure) ---
-    const geometryGroup = new THREE.Group();
-    scene.add(geometryGroup);
+    const createRing = (radius: number, color: string, rotationX: number, rotationY: number) => {
+      const ringGeo = new THREE.RingGeometry(radius - 1, radius + 1, 96);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(color),
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: isDark ? 0.35 : 0.2,
+        blending: isDark ? THREE.AdditiveBlending : THREE.NormalBlending,
+      });
+      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+      ringMesh.rotation.x = rotationX;
+      ringMesh.rotation.y = rotationY;
+      return ringMesh;
+    };
 
-    // Primary Geodesic Polyhedron (Sphere / Icosahedron)
-    const sphereGeo = new THREE.IcosahedronGeometry(130, 2);
-    const sphereWireframe = new THREE.WireframeGeometry(sphereGeo);
-    const wireframeMat = new THREE.LineBasicMaterial({
-      color: isDark ? 0x6366f1 : 0x4f46e5,
-      transparent: true,
-      opacity: isDark ? 0.4 : 0.25,
-      blending: isDark ? THREE.AdditiveBlending : THREE.NormalBlending,
+    const ring1 = createRing(globeRadius * 1.35, isDark ? '#818cf8' : '#4f46e5', Math.PI / 2, 0);
+    const ring2 = createRing(globeRadius * 1.5, isDark ? '#38bdf8' : '#0284c7', Math.PI / 3, Math.PI / 6);
+    orbitalGroup.add(ring1);
+    orbitalGroup.add(ring2);
+
+    // --- 7. Tech Hub City Markers & Pulsating Radar Beacons ---
+    const hubMarkersGroup = new THREE.Group();
+    earthGroup.add(hubMarkersGroup);
+
+    const hubBeacons: Array<{
+      mesh: THREE.Mesh;
+      ring: THREE.Mesh;
+      baseScale: number;
+      pulseSpeed: number;
+      hub: TechHub;
+    }> = [];
+
+    TECH_HUBS.forEach((hub) => {
+      const pos = latLngToVector3(hub.lat, hub.lng, globeRadius + 2);
+
+      // Core City Beacon Sphere
+      const dotGeo = new THREE.SphereGeometry(hub.isHome ? 3.5 : 2.2, 16, 16);
+      const dotMat = new THREE.MeshBasicMaterial({
+        color: hub.isHome
+          ? new THREE.Color(isDark ? '#38bdf8' : '#2563eb')
+          : new THREE.Color(isDark ? '#f59e0b' : '#d97706'),
+      });
+      const dotMesh = new THREE.Mesh(dotGeo, dotMat);
+      dotMesh.position.copy(pos);
+      hubMarkersGroup.add(dotMesh);
+
+      // Pulsating Radar Wave Ring
+      const pulseGeo = new THREE.RingGeometry(2, hub.isHome ? 8 : 5, 32);
+      const pulseMat = new THREE.MeshBasicMaterial({
+        color: hub.isHome
+          ? new THREE.Color(isDark ? '#38bdf8' : '#2563eb')
+          : new THREE.Color(isDark ? '#f59e0b' : '#d97706'),
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.8,
+        blending: THREE.AdditiveBlending,
+      });
+      const pulseMesh = new THREE.Mesh(pulseGeo, pulseMat);
+      pulseMesh.position.copy(pos);
+      pulseMesh.lookAt(pos.clone().multiplyScalar(2));
+      hubMarkersGroup.add(pulseMesh);
+
+      hubBeacons.push({
+        mesh: dotMesh,
+        ring: pulseMesh,
+        baseScale: 1,
+        pulseSpeed: hub.isHome ? 2.5 : 1.8,
+        hub,
+      });
     });
-    const sphereMesh = new THREE.LineSegments(sphereWireframe, wireframeMat);
-    sphereMesh.position.set(400, -220, -100);
-    geometryGroup.add(sphereMesh);
 
-    // Secondary Floating Orbiting Torus Knot
-    const torusGeo = new THREE.TorusKnotGeometry(75, 18, 80, 16);
-    const torusWireframe = new THREE.WireframeGeometry(torusGeo);
-    const torusMat = new THREE.LineBasicMaterial({
-      color: isDark ? 0xa855f7 : 0x7c3aed,
-      transparent: true,
-      opacity: isDark ? 0.3 : 0.2,
-      blending: isDark ? THREE.AdditiveBlending : THREE.NormalBlending,
+    // --- 8. Dynamic 3D Curved Great-Circle Data Arcs & Traveling Photons ---
+    const arcsGroup = new THREE.Group();
+    earthGroup.add(arcsGroup);
+
+    const activePhotons: Array<{
+      curve: THREE.CubicBezierCurve3;
+      mesh: THREE.Mesh;
+      progress: number;
+      speed: number;
+    }> = [];
+
+    if (showDataArcs) {
+      DATA_CONNECTIONS.forEach(([fromIdx, toIdx]) => {
+        const fromHub = TECH_HUBS[fromIdx];
+        const toHub = TECH_HUBS[toIdx];
+        if (!fromHub || !toHub) return;
+
+        const p1 = latLngToVector3(fromHub.lat, fromHub.lng, globeRadius);
+        const p2 = latLngToVector3(toHub.lat, toHub.lng, globeRadius);
+        const curve = createArcCurve(p1, p2, 65);
+
+        // Arc Tube Line
+        const points = curve.getPoints(50);
+        const arcGeo = new THREE.BufferGeometry().setFromPoints(points);
+        const arcMat = new THREE.LineBasicMaterial({
+          color: fromHub.isHome
+            ? new THREE.Color(isDark ? '#38bdf8' : '#2563eb')
+            : new THREE.Color(isDark ? '#a855f7' : '#7c3aed'),
+          transparent: true,
+          opacity: isDark ? 0.55 : 0.35,
+          blending: isDark ? THREE.AdditiveBlending : THREE.NormalBlending,
+        });
+        const arcLine = new THREE.Line(arcGeo, arcMat);
+        arcsGroup.add(arcLine);
+
+        // Traveling Photon Particle
+        const photonGeo = new THREE.SphereGeometry(2.4, 8, 8);
+        const photonMat = new THREE.MeshBasicMaterial({
+          color: new THREE.Color(isDark ? '#ffffff' : '#38bdf8'),
+          blending: THREE.AdditiveBlending,
+        });
+        const photonMesh = new THREE.Mesh(photonGeo, photonMat);
+        arcsGroup.add(photonMesh);
+
+        activePhotons.push({
+          curve,
+          mesh: photonMesh,
+          progress: Math.random(),
+          speed: Math.random() * 0.006 + 0.004,
+        });
+      });
+    }
+
+    // --- 9. Orbiting Communications Satellite (ISS / Relay) ---
+    const satelliteGroup = new THREE.Group();
+    earthGroup.add(satelliteGroup);
+
+    const satBodyGeo = new THREE.BoxGeometry(4, 4, 8);
+    const satBodyMat = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(isDark ? '#e0e7ff' : '#475569'),
     });
-    const torusMesh = new THREE.LineSegments(torusWireframe, torusMat);
-    torusMesh.position.set(-450, 180, -200);
-    geometryGroup.add(torusMesh);
+    const satBody = new THREE.Mesh(satBodyGeo, satBodyMat);
+    satelliteGroup.add(satBody);
 
-    // Third Floating Octahedron Accent
-    const octaGeo = new THREE.OctahedronGeometry(60, 1);
-    const octaWireframe = new THREE.WireframeGeometry(octaGeo);
-    const octaMat = new THREE.LineBasicMaterial({
-      color: isDark ? 0x38bdf8 : 0x0284c7,
-      transparent: true,
-      opacity: isDark ? 0.45 : 0.3,
-      blending: isDark ? THREE.AdditiveBlending : THREE.NormalBlending,
+    // Solar panels
+    const panelGeo = new THREE.BoxGeometry(16, 0.5, 5);
+    const panelMat = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(isDark ? '#38bdf8' : '#0284c7'),
     });
-    const octaMesh = new THREE.LineSegments(octaWireframe, octaMat);
-    octaMesh.position.set(-250, -280, 50);
-    geometryGroup.add(octaMesh);
+    const panel = new THREE.Mesh(panelGeo, panelMat);
+    satelliteGroup.add(panel);
 
-    // --- 5. Mouse Parallax & Interaction Tracking ---
+    const satOrbitRadius = globeRadius * 1.42;
+
+    // --- 10. Mouse Interaction & Touch Drag Orbit Handling ---
     let mouseX = 0;
     let mouseY = 0;
     let targetMouseX = 0;
@@ -219,6 +487,34 @@ export const ThreeBackground: React.FC = () => {
       const halfH = window.innerHeight / 2;
       targetMouseX = (e.clientX - halfW) / halfW;
       targetMouseY = (e.clientY - halfH) / halfH;
+
+      if (isDraggingRef.current) {
+        const deltaX = e.clientX - previousMousePositionRef.current.x;
+        const deltaY = e.clientY - previousMousePositionRef.current.y;
+
+        earthGroup.rotation.y += deltaX * 0.005;
+        earthGroup.rotation.x += deltaY * 0.005;
+
+        globeRotationVelocityRef.current = {
+          x: deltaY * 0.002,
+          y: deltaX * 0.002,
+        };
+
+        previousMousePositionRef.current = { x: e.clientX, y: e.clientY };
+      }
+    };
+
+    const onMouseDown = (e: MouseEvent) => {
+      // Don't intercept clicks on interactive buttons or cards
+      const target = e.target as HTMLElement;
+      if (target.closest('button, a, input, textarea, select')) return;
+
+      isDraggingRef.current = true;
+      previousMousePositionRef.current = { x: e.clientX, y: e.clientY };
+    };
+
+    const onMouseUp = () => {
+      isDraggingRef.current = false;
     };
 
     const onScroll = () => {
@@ -226,9 +522,42 @@ export const ThreeBackground: React.FC = () => {
     };
 
     window.addEventListener('mousemove', onMouseMove, { passive: true });
+    window.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mouseup', onMouseUp);
     window.addEventListener('scroll', onScroll, { passive: true });
 
-    // --- 6. Responsive Window Resize Handler ---
+    // Touch Support
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 1 && isDraggingRef.current) {
+        const touch = e.touches[0];
+        const deltaX = touch.clientX - previousMousePositionRef.current.x;
+        const deltaY = touch.clientY - previousMousePositionRef.current.y;
+
+        earthGroup.rotation.y += deltaX * 0.006;
+        earthGroup.rotation.x += deltaY * 0.006;
+
+        previousMousePositionRef.current = { x: touch.clientX, y: touch.clientY };
+      }
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        const target = e.target as HTMLElement;
+        if (target.closest('button, a, input, textarea, select')) return;
+        isDraggingRef.current = true;
+        previousMousePositionRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }
+    };
+
+    const onTouchEnd = () => {
+      isDraggingRef.current = false;
+    };
+
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchend', onTouchEnd);
+
+    // --- 11. Window Resize Handling ---
     const onResize = () => {
       if (!containerRef.current) return;
       width = containerRef.current.clientWidth || window.innerWidth;
@@ -236,11 +565,14 @@ export const ThreeBackground: React.FC = () => {
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
       renderer.setSize(width, height);
+
+      // Reposition earth according to screen width
+      earthGroup.position.x = width > 1024 ? 120 : 0;
     };
 
     window.addEventListener('resize', onResize);
 
-    // --- 7. Animation Loop ---
+    // --- 12. Main 60FPS Animation Loop ---
     let animationFrameId: number;
     let clock = new THREE.Clock();
 
@@ -248,138 +580,119 @@ export const ThreeBackground: React.FC = () => {
       animationFrameId = requestAnimationFrame(animate);
 
       const delta = clock.getDelta();
+      const elapsedTime = clock.getElapsedTime();
       const speed = speedMultiplier;
 
-      // Mouse Smooth Damping
-      mouseX += (targetMouseX - mouseX) * 0.05;
-      mouseY += (targetMouseY - mouseY) * 0.05;
+      // Mouse Parallax Damping
+      mouseX += (targetMouseX - mouseX) * 0.04;
+      mouseY += (targetMouseY - mouseY) * 0.04;
 
       // Camera Gentle Sway with Scroll Depth
-      camera.position.x = mouseX * 90;
-      camera.position.y = -mouseY * 90 - scrollYOffset * 0.15;
-      camera.lookAt(0, -scrollYOffset * 0.15, 0);
+      camera.position.x = mouseX * 60;
+      camera.position.y = -mouseY * 60 - scrollYOffset * 0.12;
+      camera.lookAt(earthGroup.position.x * 0.5, -scrollYOffset * 0.12, 0);
 
-      // Rotate Wireframe Geometries
-      sphereMesh.rotation.x += 0.003 * speed;
-      sphereMesh.rotation.y += 0.005 * speed;
-
-      torusMesh.rotation.x += 0.004 * speed;
-      torusMesh.rotation.z += 0.006 * speed;
-
-      octaMesh.rotation.y += 0.008 * speed;
-      octaMesh.rotation.z += 0.005 * speed;
-
-      // Update Celestial Particles
-      const positions = particlesGeometry.attributes.position.array as Float32Array;
-
-      let vertexIndex = 0;
-      let colorIndex = 0;
-      let connectionCount = 0;
-
-      for (let i = 0; i < particleCount; i++) {
-        const i3 = i * 3;
-
-        // Position Updates
-        positions[i3] += particleVelocities[i].x * speed;
-        positions[i3 + 1] += particleVelocities[i].y * speed;
-        positions[i3 + 2] += particleVelocities[i].z * speed;
-
-        // Boundary Wrap / Bounce
-        if (positions[i3] < -boundX || positions[i3] > boundX) particleVelocities[i].x *= -1;
-        if (positions[i3 + 1] < -boundY || positions[i3 + 1] > boundY) particleVelocities[i].y *= -1;
-        if (positions[i3 + 2] < -boundZ || positions[i3 + 2] > boundZ) particleVelocities[i].z *= -1;
-
-        // Dynamic Connecting Constellation Lines
-        for (let j = i + 1; j < particleCount; j++) {
-          const j3 = j * 3;
-          const dx = positions[i3] - positions[j3];
-          const dy = positions[i3 + 1] - positions[j3 + 1];
-          const dz = positions[i3 + 2] - positions[j3 + 2];
-          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-          if (dist < maxDistance && connectionCount < maxConnections) {
-            const alpha = 1.0 - dist / maxDistance;
-
-            // Point A
-            linePositions[vertexIndex++] = positions[i3];
-            linePositions[vertexIndex++] = positions[i3 + 1];
-            linePositions[vertexIndex++] = positions[i3 + 2];
-
-            // Point B
-            linePositions[vertexIndex++] = positions[j3];
-            linePositions[vertexIndex++] = positions[j3 + 1];
-            linePositions[vertexIndex++] = positions[j3 + 2];
-
-            // Colors with distance fade
-            const c1r = particleColors[i3] * alpha;
-            const c1g = particleColors[i3 + 1] * alpha;
-            const c1b = particleColors[i3 + 2] * alpha;
-
-            const c2r = particleColors[j3] * alpha;
-            const c2g = particleColors[j3 + 1] * alpha;
-            const c2b = particleColors[j3 + 2] * alpha;
-
-            lineColors[colorIndex++] = c1r;
-            lineColors[colorIndex++] = c1g;
-            lineColors[colorIndex++] = c1b;
-
-            lineColors[colorIndex++] = c2r;
-            lineColors[colorIndex++] = c2g;
-            lineColors[colorIndex++] = c2b;
-
-            connectionCount++;
-          }
-        }
+      // Auto Rotation & Inertia Damping
+      if (!isDraggingRef.current) {
+        earthGroup.rotation.y += 0.0018 * speed;
+      } else {
+        earthGroup.rotation.y += globeRotationVelocityRef.current.y;
+        earthGroup.rotation.x += globeRotationVelocityRef.current.x;
+        globeRotationVelocityRef.current.x *= 0.95;
+        globeRotationVelocityRef.current.y *= 0.95;
       }
 
-      particlesGeometry.attributes.position.needsUpdate = true;
+      // Rotate Clouds slightly faster than Earth (Realistic differential atmospheric rotation)
+      if (cloudsMesh) {
+        cloudsMesh.rotation.y += 0.0024 * speed;
+      }
 
-      linesGeometry.setDrawRange(0, connectionCount * 2);
-      linesGeometry.attributes.position.needsUpdate = true;
-      linesGeometry.attributes.color.needsUpdate = true;
+      // Rotate Holographic Geodesic Core
+      if (holoIcosahedron) {
+        holoIcosahedron.rotation.x += 0.004 * speed;
+        holoIcosahedron.rotation.y += 0.006 * speed;
+      }
+
+      // Rotate Orbital Telemetry Rings
+      ring1.rotation.z += 0.003 * speed;
+      ring2.rotation.z -= 0.004 * speed;
+
+      // Update Orbiting Satellite Position
+      const satAngle = elapsedTime * 0.4 * speed;
+      satelliteGroup.position.set(
+        Math.cos(satAngle) * satOrbitRadius,
+        Math.sin(satAngle * 1.5) * (satOrbitRadius * 0.4),
+        Math.sin(satAngle) * satOrbitRadius
+      );
+      satelliteGroup.lookAt(earthGroup.position);
+
+      // Animate City Pulsating Radar Waves
+      hubBeacons.forEach(({ ring, pulseSpeed }) => {
+        const s = ((elapsedTime * pulseSpeed) % 1.6) + 0.6;
+        ring.scale.set(s, s, s);
+        (ring.material as THREE.MeshBasicMaterial).opacity = Math.max(0, 1 - (s - 0.6) / 1.6);
+      });
+
+      // Animate Traveling Photons along Data Arcs
+      activePhotons.forEach((photon) => {
+        photon.progress = (photon.progress + photon.speed * speed) % 1;
+        const pt = photon.curve.getPoint(photon.progress);
+        photon.mesh.position.copy(pt);
+      });
+
+      // Rotate Background Starfield slowly
+      starsMesh.rotation.y += 0.0003 * speed;
 
       renderer.render(scene, camera);
     };
 
     animate();
 
-    // Cleanup
+    // --- 13. Cleanup on Unmount / Config Change ---
     return () => {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mouseup', onMouseUp);
       window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchend', onTouchEnd);
       window.removeEventListener('resize', onResize);
 
       if (container && renderer.domElement) {
         container.innerHTML = '';
       }
 
-      particlesGeometry.dispose();
-      particlesMaterial.dispose();
-      linesGeometry.dispose();
-      linesMaterial.dispose();
-      sphereGeo.dispose();
-      sphereWireframe.dispose();
-      wireframeMat.dispose();
-      torusGeo.dispose();
-      torusWireframe.dispose();
-      torusMat.dispose();
-      octaGeo.dispose();
-      octaWireframe.dispose();
-      octaMat.dispose();
+      // Dispose Geometries & Materials
+      starsGeo.dispose();
+      starsMat.dispose();
+      atmosphereGeo.dispose();
+      atmosphereMat.dispose();
+      ring1.geometry.dispose();
+      (ring1.material as THREE.Material).dispose();
+      ring2.geometry.dispose();
+      (ring2.material as THREE.Material).dispose();
       renderer.dispose();
     };
-  }, [isEnabled, isDark, speedMultiplier]);
+  }, [isEnabled, isDark, earthMode, speedMultiplier, showDataArcs]);
+
+  const handleModeSelect = (mode: EarthMode) => {
+    setEarthMode(mode);
+    localStorage.setItem('portfolio_earth_mode', mode);
+    playUiSound('tab');
+  };
 
   const toggleEnabled = () => {
     const next = !isEnabled;
     setIsEnabled(next);
     localStorage.setItem('three_bg_enabled', String(next));
-    playUiSound('click');
+    playUiSound('toggle');
   };
 
   const handleSpeedChange = (spd: number) => {
     setSpeedMultiplier(spd);
+    localStorage.setItem('portfolio_earth_speed', String(spd));
     playUiSound('click');
   };
 
@@ -389,77 +702,151 @@ export const ThreeBackground: React.FC = () => {
       {isEnabled && (
         <div
           ref={containerRef}
-          id="threejs-canvas-container"
-          className="fixed inset-0 w-full h-full pointer-events-none -z-10 overflow-hidden"
+          id="threejs-earth-canvas"
+          className="fixed inset-0 w-full h-full pointer-events-auto -z-10 overflow-hidden cursor-grab active:cursor-grabbing"
           aria-hidden="true"
+          title="Click and drag to spin 3D Earth"
           style={{
             background: isDark
-              ? 'radial-gradient(ellipse at center, #0a0d24 0%, #060814 70%, #04050d 100%)'
-              : 'radial-gradient(ellipse at center, #f8fafc 0%, #edf2f7 70%, #e2e8f0 100%)',
+              ? 'radial-gradient(ellipse at 65% 50%, #0c122e 0%, #050716 65%, #02030a 100%)'
+              : 'radial-gradient(ellipse at 65% 50%, #f1f5f9 0%, #e2e8f0 65%, #cbd5e1 100%)',
           }}
         />
       )}
 
-      {/* Floating 3D Background HUD Pill (Bottom Right) */}
-      <div className="fixed bottom-6 right-6 z-40 flex items-center gap-2">
+      {/* Floating 3D Earth HUD Pill & Preset Switcher (Bottom Right) */}
+      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2.5">
+        {/* Expanded 3D Controls Card */}
         {showControls && isEnabled && (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 shadow-xl text-xs text-slate-700 dark:text-slate-200 animate-in fade-in slide-in-from-bottom-3 duration-200">
-            <span className="font-semibold text-slate-500 dark:text-slate-400">Speed:</span>
-            {[0.5, 1, 1.5, 2].map((spd) => (
+          <div
+            id="earth-controls-panel"
+            className="w-80 p-4 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 shadow-2xl text-slate-800 dark:text-slate-100 animate-in fade-in slide-in-from-bottom-3 duration-200"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 mb-3">
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-indigo-500 animate-spin" style={{ animationDuration: '8s' }} />
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                  3D Earth Controls
+                </span>
+              </div>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 font-semibold">
+                WebGL 60FPS
+              </span>
+            </div>
+
+            {/* Earth Animation Mode Selector */}
+            <div className="space-y-1.5 mb-3.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                Earth Mode
+              </label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {EARTH_MODES.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => handleModeSelect(m.id)}
+                    className={`p-2 rounded-xl text-left flex flex-col items-center justify-center gap-1 transition-all text-xs font-semibold ${
+                      earthMode === m.id
+                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                        : 'bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    <span className="text-base">{m.icon}</span>
+                    <span className="text-[10px] text-center leading-tight">
+                      {m.id === 'cyber_matrix' ? 'Cyber' : m.id === 'blue_marble' ? 'Marble' : 'Vector'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Rotation Speed Multiplier */}
+            <div className="space-y-1.5 mb-3.5">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="font-bold uppercase tracking-wider text-slate-400">Orbit Speed</span>
+                <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{speedMultiplier}x</span>
+              </div>
+              <div className="grid grid-cols-5 gap-1">
+                {[0, 0.5, 1, 1.5, 2].map((spd) => (
+                  <button
+                    key={spd}
+                    onClick={() => handleSpeedChange(spd)}
+                    className={`py-1 rounded-lg font-mono text-[11px] font-bold transition-colors ${
+                      speedMultiplier === spd
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {spd === 0 ? 'Pause' : `${spd}x`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Toggles */}
+            <div className="pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <button
-                key={spd}
-                onClick={() => handleSpeedChange(spd)}
-                className={`px-2 py-1 rounded-lg font-mono text-[11px] transition-colors ${
-                  speedMultiplier === spd
-                    ? 'bg-indigo-600 text-white font-bold'
-                    : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'
+                onClick={() => {
+                  setShowDataArcs(!showDataArcs);
+                  playUiSound('toggle');
+                }}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  showDataArcs
+                    ? 'bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
                 }`}
               >
-                {spd}x
+                <Radio className="w-3.5 h-3.5" />
+                <span>Data Arcs {showDataArcs ? 'On' : 'Off'}</span>
               </button>
-            ))}
+
+              <span className="text-[10px] text-slate-400 font-medium">
+                Drag to spin Earth 🌐
+              </span>
+            </div>
           </div>
         )}
 
-        <button
-          id="three-toggle-hud-btn"
-          onClick={() => {
-            setShowControls(!showControls);
-            playUiSound('click');
-          }}
-          className={`flex items-center gap-2 px-3.5 py-2.5 rounded-full backdrop-blur-md border shadow-xl transition-all duration-200 hover:scale-105 ${
-            isEnabled
-              ? 'bg-slate-900/80 text-white border-indigo-500/40 shadow-indigo-500/10 hover:border-indigo-400'
-              : 'bg-white/80 dark:bg-slate-900/80 text-slate-500 border-slate-200 dark:border-slate-800'
-          }`}
-          title="3D Background Settings"
-        >
-          <div className="flex items-center gap-1.5">
-            <span className="relative flex h-2 w-2">
-              {isEnabled && (
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-              )}
-              <span
-                className={`relative inline-flex rounded-full h-2 w-2 ${
-                  isEnabled ? 'bg-indigo-500' : 'bg-slate-400'
-                }`}
-              />
-            </span>
-            <span className="text-xs font-semibold">3D Space</span>
-          </div>
+        {/* Floating Action Buttons */}
+        <div className="flex items-center gap-2">
+          {/* Main 3D Earth Trigger Pill */}
+          <button
+            id="three-earth-toggle-hud-btn"
+            onClick={() => {
+              setShowControls(!showControls);
+              playUiSound('click');
+            }}
+            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-full backdrop-blur-md border shadow-xl transition-all duration-200 hover:scale-105 ${
+              isEnabled
+                ? 'bg-slate-900/90 text-white border-indigo-500/50 shadow-indigo-500/10 hover:border-indigo-400'
+                : 'bg-white/90 dark:bg-slate-900/90 text-slate-500 border-slate-200 dark:border-slate-800'
+            }`}
+            title="3D Earth Settings & Animations"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-sm">
+                {earthMode === 'cyber_matrix' ? '🌐' : earthMode === 'blue_marble' ? '🌍' : '🕸️'}
+              </span>
+              <div className="flex flex-col text-left">
+                <span className="text-xs font-bold leading-none">3D Earth</span>
+                <span className="text-[10px] text-indigo-400 font-medium">
+                  {earthMode === 'cyber_matrix' ? 'Cyber Matrix' : earthMode === 'blue_marble' ? 'Blue Marble' : 'Vector Grid'}
+                </span>
+              </div>
+            </div>
 
-          <Sliders className="w-3.5 h-3.5 text-indigo-400" />
-        </button>
+            <Sliders className="w-3.5 h-3.5 text-indigo-400 ml-1" />
+          </button>
 
-        {/* Quick Power Toggle */}
-        <button
-          id="three-power-btn"
-          onClick={toggleEnabled}
-          className="p-2.5 rounded-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 shadow-xl hover:text-indigo-600 dark:hover:text-indigo-400 hover:scale-105 transition-all"
-          title={isEnabled ? 'Turn 3D background off' : 'Turn 3D background on'}
-        >
-          {isEnabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4 text-slate-400" />}
-        </button>
+          {/* Quick On/Off Power Toggle */}
+          <button
+            id="three-earth-power-btn"
+            onClick={toggleEnabled}
+            className="p-2.5 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 shadow-xl hover:text-indigo-600 dark:hover:text-indigo-400 hover:scale-105 transition-all"
+            title={isEnabled ? 'Turn 3D Earth off' : 'Turn 3D Earth on'}
+          >
+            {isEnabled ? <Eye className="w-4 h-4 text-indigo-500" /> : <EyeOff className="w-4 h-4 text-slate-400" />}
+          </button>
+        </div>
       </div>
     </>
   );
