@@ -3,7 +3,6 @@ import {
   ArrowUp,
   Github,
   Linkedin,
-  Instagram,
   Mail,
   Heart,
   Code2,
@@ -98,15 +97,6 @@ export const Footer: React.FC = () => {
               className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
             >
               <Linkedin className="w-4 h-4" />
-            </a>
-            <a
-              href={PERSONAL_INFO.socials.instagram}
-              target="_blank"
-              rel="noreferrer"
-              aria-label="Instagram Profile"
-              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
-            >
-              <Instagram className="w-4 h-4" />
             </a>
 
             <button

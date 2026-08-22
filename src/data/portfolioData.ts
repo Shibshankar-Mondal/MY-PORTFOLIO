@@ -20,9 +20,8 @@ export const PERSONAL_INFO = {
   avatar: '/images/shibshankar-developer.svg',
   availability: 'Available for Internships & Projects',
   socials: {
-    github: 'https://github.com',
+    github: 'https://github.com/Shibshankar-Mondal',
     linkedin: 'https://linkedin.com',
-    instagram: 'https://www.instagram.com/shibshankarmondal001',
     email: 'mailto:shibshankarmondal98@gmail.com',
     phone: 'tel:+917501781295',
   },

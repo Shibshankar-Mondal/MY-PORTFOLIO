@@ -11,7 +11,6 @@ import {
   Moon,
   Github,
   Linkedin,
-  Instagram,
   Copy,
   Check,
   Globe,
@@ -282,17 +281,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       icon: <Linkedin className="w-4 h-4 text-sky-400" />,
       action: () => {
         window.open(PERSONAL_INFO.socials.linkedin, '_blank');
-        onClose();
-      },
-    },
-    {
-      id: 'open-instagram',
-      title: 'Open Instagram Profile',
-      subtitle: PERSONAL_INFO.socials.instagram,
-      category: 'Contact & Social',
-      icon: <Instagram className="w-4 h-4 text-pink-400" />,
-      action: () => {
-        window.open(PERSONAL_INFO.socials.instagram, '_blank');
         onClose();
       },
     },

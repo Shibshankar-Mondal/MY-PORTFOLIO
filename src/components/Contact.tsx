@@ -4,7 +4,6 @@ import {
   Send,
   Github,
   Linkedin,
-  Instagram,
   Copy,
   Check,
   MapPin,
@@ -343,7 +342,7 @@ export const Contact: React.FC = () => {
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
                 {t.contact.directContactTitle}
               </h4>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 {/* GitHub */}
                 <a
                   id="social-link-github"
@@ -366,18 +365,6 @@ export const Contact: React.FC = () => {
                 >
                   <Linkedin className="w-5 h-5 mb-1 group-hover:scale-110 transition-transform" />
                   <span className="text-xs font-semibold">LinkedIn</span>
-                </a>
-
-                {/* Instagram */}
-                <a
-                  id="social-link-instagram"
-                  href={PERSONAL_INFO.socials.instagram}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex flex-col items-center justify-center p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 transition-colors group"
-                >
-                  <Instagram className="w-5 h-5 mb-1 group-hover:scale-110 transition-transform" />
-                  <span className="text-xs font-semibold">Instagram</span>
                 </a>
               </div>
             </div>
