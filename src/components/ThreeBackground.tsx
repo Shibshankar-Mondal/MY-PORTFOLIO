@@ -1,20 +1,6 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useTheme } from '../context/ThemeContext';
-import {
-  Globe,
-  Sparkles,
-  Eye,
-  EyeOff,
-  Sliders,
-  RefreshCw,
-  Zap,
-  Layers,
-  Radio,
-  Navigation,
-  Compass,
-} from 'lucide-react';
-import { playUiSound } from '../utils/soundEffects';
 import {
   TECH_HUBS,
   DATA_CONNECTIONS,
@@ -27,34 +13,6 @@ import {
 } from '../utils/earthTextures';
 
 export type EarthMode = 'cyber_matrix' | 'blue_marble' | 'holo_vector';
-
-interface EarthModeMeta {
-  id: EarthMode;
-  label: string;
-  desc: string;
-  icon: string;
-}
-
-const EARTH_MODES: EarthModeMeta[] = [
-  {
-    id: 'cyber_matrix',
-    label: 'Cyber Tech Matrix',
-    desc: 'Dot-matrix continents, pulsating beacons & live data arcs',
-    icon: '🌐',
-  },
-  {
-    id: 'blue_marble',
-    label: 'Blue Marble Globe',
-    desc: 'Day/Night illumination with atmospheric clouds & lights',
-    icon: '🌍',
-  },
-  {
-    id: 'holo_vector',
-    label: 'Holographic Vector',
-    desc: 'Geodesic wireframe globe with orbital telemetry rings',
-    icon: '🕸️',
-  },
-];
 
 // Helper to generate glowing circular orb texture
 function createGlowSpriteTexture(colorHex = '#38bdf8'): THREE.Texture {
@@ -85,7 +43,7 @@ export const ThreeBackground: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // User Preferences from localStorage
-  const [earthMode, setEarthMode] = useState<EarthMode>(() => {
+  const [earthMode] = useState<EarthMode>(() => {
     const saved = localStorage.getItem('portfolio_earth_mode');
     if (saved === 'cyber_matrix' || saved === 'blue_marble' || saved === 'holo_vector') {
       return saved;
@@ -93,18 +51,16 @@ export const ThreeBackground: React.FC = () => {
     return 'cyber_matrix';
   });
 
-  const [isEnabled, setIsEnabled] = useState<boolean>(() => {
+  const [isEnabled] = useState<boolean>(() => {
     return localStorage.getItem('three_bg_enabled') !== 'false';
   });
 
-  const [speedMultiplier, setSpeedMultiplier] = useState<number>(() => {
+  const [speedMultiplier] = useState<number>(() => {
     const saved = localStorage.getItem('portfolio_earth_speed');
     return saved ? parseFloat(saved) : 1;
   });
 
-  const [showDataArcs, setShowDataArcs] = useState<boolean>(true);
-  const [showControls, setShowControls] = useState<boolean>(false);
-  const [activeCityTooltip, setActiveCityTooltip] = useState<TechHub | null>(null);
+  const [showDataArcs] = useState<boolean>(true);
 
   const isDark = theme === 'dark';
 
@@ -677,25 +633,6 @@ export const ThreeBackground: React.FC = () => {
     };
   }, [isEnabled, isDark, earthMode, speedMultiplier, showDataArcs]);
 
-  const handleModeSelect = (mode: EarthMode) => {
-    setEarthMode(mode);
-    localStorage.setItem('portfolio_earth_mode', mode);
-    playUiSound('tab');
-  };
-
-  const toggleEnabled = () => {
-    const next = !isEnabled;
-    setIsEnabled(next);
-    localStorage.setItem('three_bg_enabled', String(next));
-    playUiSound('toggle');
-  };
-
-  const handleSpeedChange = (spd: number) => {
-    setSpeedMultiplier(spd);
-    localStorage.setItem('portfolio_earth_speed', String(spd));
-    playUiSound('click');
-  };
-
   return (
     <>
       {/* 3D WebGL Fixed Canvas Covering the Full Viewport */}
@@ -713,141 +650,6 @@ export const ThreeBackground: React.FC = () => {
           }}
         />
       )}
-
-      {/* Floating 3D Earth HUD Pill & Preset Switcher (Bottom Right) */}
-      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2.5">
-        {/* Expanded 3D Controls Card */}
-        {showControls && isEnabled && (
-          <div
-            id="earth-controls-panel"
-            className="w-80 p-4 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 shadow-2xl text-slate-800 dark:text-slate-100 animate-in fade-in slide-in-from-bottom-3 duration-200"
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 mb-3">
-              <div className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-indigo-500 animate-spin" style={{ animationDuration: '8s' }} />
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-                  3D Earth Controls
-                </span>
-              </div>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 font-semibold">
-                WebGL 60FPS
-              </span>
-            </div>
-
-            {/* Earth Animation Mode Selector */}
-            <div className="space-y-1.5 mb-3.5">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                Earth Mode
-              </label>
-              <div className="grid grid-cols-3 gap-1.5">
-                {EARTH_MODES.map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() => handleModeSelect(m.id)}
-                    className={`p-2 rounded-xl text-left flex flex-col items-center justify-center gap-1 transition-all text-xs font-semibold ${
-                      earthMode === m.id
-                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
-                        : 'bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    <span className="text-base">{m.icon}</span>
-                    <span className="text-[10px] text-center leading-tight">
-                      {m.id === 'cyber_matrix' ? 'Cyber' : m.id === 'blue_marble' ? 'Marble' : 'Vector'}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Rotation Speed Multiplier */}
-            <div className="space-y-1.5 mb-3.5">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="font-bold uppercase tracking-wider text-slate-400">Orbit Speed</span>
-                <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{speedMultiplier}x</span>
-              </div>
-              <div className="grid grid-cols-5 gap-1">
-                {[0, 0.5, 1, 1.5, 2].map((spd) => (
-                  <button
-                    key={spd}
-                    onClick={() => handleSpeedChange(spd)}
-                    className={`py-1 rounded-lg font-mono text-[11px] font-bold transition-colors ${
-                      speedMultiplier === spd
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    {spd === 0 ? 'Pause' : `${spd}x`}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Toggles */}
-            <div className="pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
-              <button
-                onClick={() => {
-                  setShowDataArcs(!showDataArcs);
-                  playUiSound('toggle');
-                }}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-                  showDataArcs
-                    ? 'bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
-                }`}
-              >
-                <Radio className="w-3.5 h-3.5" />
-                <span>Data Arcs {showDataArcs ? 'On' : 'Off'}</span>
-              </button>
-
-              <span className="text-[10px] text-slate-400 font-medium">
-                Drag to spin Earth 🌐
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Floating Action Buttons */}
-        <div className="flex items-center gap-2">
-          {/* Main 3D Earth Trigger Pill */}
-          <button
-            id="three-earth-toggle-hud-btn"
-            onClick={() => {
-              setShowControls(!showControls);
-              playUiSound('click');
-            }}
-            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-full backdrop-blur-md border shadow-xl transition-all duration-200 hover:scale-105 ${
-              isEnabled
-                ? 'bg-slate-900/90 text-white border-indigo-500/50 shadow-indigo-500/10 hover:border-indigo-400'
-                : 'bg-white/90 dark:bg-slate-900/90 text-slate-500 border-slate-200 dark:border-slate-800'
-            }`}
-            title="3D Earth Settings & Animations"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-sm">
-                {earthMode === 'cyber_matrix' ? '🌐' : earthMode === 'blue_marble' ? '🌍' : '🕸️'}
-              </span>
-              <div className="flex flex-col text-left">
-                <span className="text-xs font-bold leading-none">3D Earth</span>
-                <span className="text-[10px] text-indigo-400 font-medium">
-                  {earthMode === 'cyber_matrix' ? 'Cyber Matrix' : earthMode === 'blue_marble' ? 'Blue Marble' : 'Vector Grid'}
-                </span>
-              </div>
-            </div>
-
-            <Sliders className="w-3.5 h-3.5 text-indigo-400 ml-1" />
-          </button>
-
-          {/* Quick On/Off Power Toggle */}
-          <button
-            id="three-earth-power-btn"
-            onClick={toggleEnabled}
-            className="p-2.5 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 shadow-xl hover:text-indigo-600 dark:hover:text-indigo-400 hover:scale-105 transition-all"
-            title={isEnabled ? 'Turn 3D Earth off' : 'Turn 3D Earth on'}
-          >
-            {isEnabled ? <Eye className="w-4 h-4 text-indigo-500" /> : <EyeOff className="w-4 h-4 text-slate-400" />}
-          </button>
-        </div>
-      </div>
     </>
   );
 };
